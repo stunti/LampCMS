@@ -75,6 +75,8 @@ class Search extends WebPage
 	 * @var bool
 	 */
 	protected $notAjaxPaginatable = true;
+	
+	//protected $bRequirePost = true;
 
 	/**
 	 * (non-PHPdoc)
@@ -87,7 +89,7 @@ class Search extends WebPage
 		 *  $_GET as underlying array, and php
 		 *  already decodes $_GET or $_POST vars
 		 */
-		$this->term = $this->oRequest['q'];
+		$this->term = $this->oRegistry->Request->getUTF8('q')->stripTags();
 		$this->aPageVars['qheader'] = '<h1>Search results for: '.$this->term.'</h1>';
 
 		$this->aPageVars['title'] = 'Questions matching &#39;'.$this->term.'&#39;';
@@ -95,7 +97,7 @@ class Search extends WebPage
 
 			
 		$this->oSearch = SearchFactory::factory($this->oRegistry);
-		$this->oSearch->search();
+		$this->oSearch->search($this->term);
 
 		$this->makeTopTabs()
 		->makeInfo()
@@ -103,7 +105,7 @@ class Search extends WebPage
 	}
 
 	protected function makeTopTabs(){
-		d('cp');
+
 		$tabs = Urhere::factory($this->oRegistry)->get('tplToptabs', 'questions');
 		$this->aPageVars['topTabs'] = $tabs;
 

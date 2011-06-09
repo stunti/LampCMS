@@ -38,19 +38,20 @@
 
 class tplQrecent extends Lampcms\Template\Template
 {
-	
+
 	protected static function func(&$a){
+			
 		if(!empty($a['a_closed'])){
 			$a['closed'] = ' closed';
 		}
-		
-		if(!empty($a['lp_u'])){
-			$reltime = \Lampcms\TimeAgo::format(new \DateTime($a['lp_t']));
-			$a['last_poster'] = '<div class="lastposter fl cb">Latest answer by: '.$a['lp_u'].'<br>
-			<span title="'.$a['lp_t'].'" class="ts">'.$reltime.'</span></div>';
+
+		if(!empty($a['a_latest'])){
+			$reltime = \Lampcms\TimeAgo::format(new \DateTime($a['a_latest'][0]['t']));
+			$a['last_poster'] = '<div class="lastposter fl cb">Latest answer by: '.$a['a_latest'][0]['u'].'<br>
+			<span title="'.$a['a_latest'][0]['t'].'" class="ts">'.$reltime.'</span></div>';
 		}
 	}
-	
+
 	protected static $vars = array(
 	'_id' => '0', //1
 	'i_votes' => '0', //2
@@ -75,11 +76,13 @@ class tplQrecent extends Lampcms\Template\Template
 	'i_sticky' => '', //21
 	'dot' => '', //22
 	'last_poster' => '', //23
-	'i_etag' => '0' //24
+	'i_etag' => '0', //24
+	'following_tag' => '', //25
+	'following_q' => '' //26
 	);
 
 	protected static $tpl = '
-	<div class="qs%18$s" id="q-%1$s" lampcms:i_etag="%24$s">  
+	<div class="qs%18$s%25$s" id="q-%1$s" lampcms:i_etag="%24$s">  
     <div class="qstats">
         <div class="arrow1"></div>
         <div class="stats">
@@ -92,17 +95,17 @@ class tplQrecent extends Lampcms\Template\Template
             <div class="status %10$s">%3$s <span rel="in">answer%17$s</span></div>
         </div>
         <div class="vws" title="%4$s view%15$s">%4$s <span rel="in">view%15$s</span></div>
-    	<div class="fl pad8">
+    	<div class="fl pad2 lpad5">
     	 <span class="icoc unread ttt ru ajax" title="Click to toggle Unread/Read status">&nbsp;</span>
     	</div>
         %22$s
+        %26$s
      </div>
     <!-- //statsdiv -->
     <div class="smmry">
         <div class="fl"><a href="/q%1$s/%5$s" class="ql%19$s pri%21$s">%7$s</a></div>
         <div class="fl cb intro">%6$s</div>
-        <div class="fl cb tgs %8$s">%9$s</div>
-        
+        <div class="fl cb tgs">%9$s</div>
         <div class="pstr">
             <div class="usrinfo">
             	<div class="asked"><span rel="in">%20$s </span><span title="%13$s" class="ts" rel="time">%13$s</span></div>
@@ -111,8 +114,6 @@ class tplQrecent extends Lampcms\Template\Template
             </div> 
              %23$s           
         </div>
-       
-       
     </div>
     <!-- //smmry -->
 	</div>

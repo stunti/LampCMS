@@ -59,6 +59,95 @@
 
 namespace Lampcms\Interfaces;
 
+/**
+ * Authentication class
+ * must return User object
+ *
+ * @author Dmitri Snytkine
+ *
+ */
+interface AuthProvider
+{
+	public function getUser();
+}
+
+interface Tokenizer
+{
+	public function countTokens();
+
+	public function nextToken();
+
+	public function hasMoveTokens();
+
+	public function parse();
+}
+
+interface Cookie
+{
+
+	/**
+	 * Returnes value of specific cookie name
+	 *
+	 * @param string $cookieName
+	 *
+	 * @param mixed $fallbackVal a value to return if cookie
+	 * does not exist or its value is empty
+	 *
+	 * @return mixed value if cookie found or false
+	 * if cookie not found
+	 */
+	public function get($cookieName, $fallbackVal = false);
+
+	/**
+	 * Sends cookie with expiration
+	 * in the past, which will delete the cookie
+	 *
+	 * @param mixed $name a string
+	 * or array of cookies to delete
+	 *
+	 * @throws LampcmsDevException if $name
+	 * is not string and not array
+	 *
+	 */
+	public function delete($name);
+
+	/**
+	 * Sends cookie
+	 *
+	 * @param string $name name of cookie
+	 *
+	 * @param string $val value of cookie
+	 *
+	 * @param string $ttl expiration time in seconds
+	 * default is 63072000 means 2 years
+	 *
+	 * @param string $sDomain optional if set the setcookie will use
+	 * this value instead of COOKIE_DOMAIN constant
+	 *
+	 * @throws LampcmsDevException in case cookie
+	 * was not send to browser. Usually this happends when
+	 * the output has already been started. The main cause
+	 * of this is when the script has an echo() or print_r()
+	 * somewhere for debugging purposes.
+	 */
+	public function set($name, $val, $ttl = 63072000, $sDomain = null);
+
+	/**
+	 * Function for setting or deleting login cookie
+	 * the value of the s cookie is an md5 hash of user password
+	 * the value of the uid cookie is the userID
+	 *
+	 * @param boolean $boolKeepSigned true if user checked 'remember me' box on login form
+	 * @param integer $intUserId userID
+	 * @param string $strPassword user's password
+	 * @return void cookies are sent to browser
+	 *
+	 */
+	public function sendLoginCookie($intUserId, $strSID, $cookieName = 'uid');
+
+}
+
+
 interface Cache
 {
 
@@ -169,6 +258,9 @@ interface RoleInterface
 	 * @return string
 	 */
 	public function getRoleId();
+
+
+	public function setRoleId($role);
 }
 
 
@@ -461,6 +553,157 @@ interface TwitterUser
 }
 
 
+/**
+ * Tumblr user
+ * user who has connected
+ * Tumblr blog to account
+ *
+ * @author Dmitri Snytkine
+ *
+ */
+interface TumblrUser
+{
+	/**
+	 * Get oAuth token
+	 * that we got from Twitter for this user
+	 * @return string
+	 */
+	public function getTumblrToken();
+
+	/**
+	 * Get oAuth sercret that we got for this user
+	 * @return string
+	 */
+	public function getTumblrSecret();
+
+	/**
+	 * Revoke token and secret - remove
+	 * these values from User object
+	 *
+	 */
+	public function revokeTumblrToken();
+
+	/**
+	 * Get html for the link to tumblr blog
+	 * @return string html of link
+	 */
+	public function getTumblrBlogLink();
+
+	/**
+	 * Get array of all user's blogs
+	 * @return mixed array of at least one blog | null
+	 * if user does not have any blogs (not a usual situation)
+	 *
+	 */
+	public function getTumblrBlogs();
+
+	public function getTumblrBlogTitle();
+
+	public function getTumblrBlogUrl();
+
+
+	/**
+	 * Get value of 'group' or 'private-id'
+	 * This is used for indicating which blog
+	 * the post will go to. It is needed
+	 * in case when user has more than one blog
+	 * on Tumblr.
+	 * If user has only one blog we still use this param
+	 * for consistancy
+	 *
+	 * @return string value to be used as 'group' param
+	 * in WRITE API call
+	 *
+	 */
+	public function getTumblrBlogId();
+
+	public function setTumblrBlogs(array $blogs);
+}
+
+
+/**
+ * Blogger user
+ * user who has connected
+ * Blogger blog to account
+ *
+ * @author Dmitri Snytkine
+ *
+ */
+interface BloggerUser
+{
+	/**
+	 * Get oAuth token
+	 * that we got from Twitter for this user
+	 * @return string
+	 */
+	public function getBloggerToken();
+
+	/**
+	 * Get oAuth sercret that we got for this user
+	 * @return string
+	 */
+	public function getBloggerSecret();
+
+	/**
+	 * Revoke token and secret - remove
+	 * these values from User object
+	 *
+	 */
+	public function revokeBloggerToken();
+
+	/**
+	 * Get html for the link to Blogger blog
+	 * @return string html of link
+	 */
+	public function getBloggerBlogLink();
+
+	/**
+	 * Get array of all user's blogs
+	 * @return mixed array of at least one blog | null
+	 * if user does not have any blogs (not a usual situation)
+	 *
+	 */
+	public function getBloggerBlogs();
+
+	/**
+	 * Get title of default blog
+	 *
+	 */
+	public function getBloggerBlogTitle();
+
+	/**
+	 *
+	 * Get url of default blog
+	 */
+	public function getBloggerBlogUrl();
+
+
+	/**
+	 * @return string value to be used as '<blogid>' param
+	 * in WRITE API call
+	 *
+	 */
+	public function getBloggerBlogId();
+
+	/**
+	 * Set value of 'blogs' under the 'blogger' element
+	 *
+	 *
+	 * @param array $blogs array of all blogs
+	 * user has on Blogger. Each element is an array
+	 * with 3 keys: id, url, title
+	 */
+	public function setBloggerBlogs(array $blogs);
+}
+
+
+
+/**
+ *
+ * Enter description here ...
+ * @author Dmitri Snytkine
+ *
+ */
 interface FacebookUser
 {
 	public function revokeFacebookConnect();
@@ -470,7 +713,30 @@ interface FacebookUser
 	public function getFacebookToken();
 }
 
-interface Question extends LampcmsResource
+/**
+ * A Post is either a Question or an Answer
+ *
+ * @author admin
+ *
+ */
+interface Post extends LampcmsResource
+{
+	public function getQuestionId();
+
+	public function getTitle();
+
+	public function getSeoUrl();
+
+	public function getUrl($short = false);
+
+	public function getBody();
+}
+
+/**
+ * @author Dmitri Snytkine
+ *
+ */
+interface Question extends Post
 {
 	/**
 	 * Should return false if NOT closed
@@ -538,7 +804,27 @@ interface Question extends LampcmsResource
 
 	public function updateAnswerCount($int = 1);
 
+	/**
+	 *
+	 * Adds the small array with link to last poster
+	 * and time of last post and id of last answer
+	 * to the a_latest element of the Question
+	 *
+	 * @param \Lampcms\User $oUser
+	 * @param \Lampcms\Answer $oAnswer
+	 */
+	public function setLatestAnswer(\Lampcms\User $oUser, \Lampcms\Answer $oAnswer);
 
+	/**
+	 * Method to run when an answer is delete
+	 * Deleting an Answer affects several values
+	 * in Question like count of answers, status of question etc.
+	 * even more so if that answer
+	 * was also a "accepted" answer
+	 * 
+	 * @param \Lampcms\Answer $oAnswer
+	 */
+	public function removeAnswer(\Lampcms\Answer $oAnswer);
 }
 
 /**
@@ -547,15 +833,8 @@ interface Question extends LampcmsResource
  * @author Dmitri Snytkine
  *
  */
-interface Answer extends LampcmsResource
+interface Answer extends Post
 {
-	/**
-	 *
-	 * Get id of Question of this answer
-	 *
-	 * @return int
-	 */
-	public function getQuestionId();
 
 	/**
 	 * Get id of user that owns the question for which

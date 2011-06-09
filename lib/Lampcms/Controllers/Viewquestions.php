@@ -102,21 +102,34 @@ class Viewquestions extends WebPage
 	 * @var int
 	 */
 	protected $count;
-	
+
 	protected $PER_PAGE = 20;
 
 	protected $counterTaggedText = '';
 	
 	/**
+	 * Exclude these fields from
+	 * select for effeciency
+	 * 
+	 * @var array
+	 */
+	protected $aFields = array(
+		'a_title' => 0,
+		'a_flwrs' => 0,
+		'sim_q' => 0,
+		'a_comments' => 0
+		);
+
+	/**
 	 * Pagination links on the page
 	 * will not be handled by Ajax
-	 * 
+	 *
 	 * @var bool
 	 */
 	protected $notAjaxPaginatable = true;
 
 	protected function main(){
-		
+
 		$this->pageID = (int)$this->oRequest->get('pageID', 'i', 1);
 
 		$this->getCursor()
@@ -134,15 +147,16 @@ class Viewquestions extends WebPage
 
 	}
 
-	
+
 	/**
 	 * Select items according to conditions passed in GET
 	 * Conditions can be == 'unanswered', 'hot', 'recent' (default)
 	 */
 	protected function getCursor(){
 		$this->PER_PAGE = $this->oRegistry->Ini->PER_PAGE_QUESTIONS;
+
+		//$aFields = array();
 		
-		$aFields = array();
 
 		$cond = $this->oRequest->get('cond', 's', 'recent');
 		d('cond: '.$cond);
@@ -152,7 +166,7 @@ class Viewquestions extends WebPage
 		 * meaning most recent should be on top
 		 *
 		 */
-		$sort = array('i_sticky' => -1, 'i_lm_ts' => -1); 
+		$sort = array('i_sticky' => -1, 'i_lm_ts' => -1);
 		/**
 		 * @todo translate string title
 		 *
@@ -211,14 +225,20 @@ class Viewquestions extends WebPage
 		}
 
 		/**
-		 * Exclude deleted items unless viewer
-		 * is a moderator
+		 * Exclude deleted items
 		 */
-		if(!$this->oRegistry->Viewer->isModerator()){
-			$where['i_del_ts'] = null;
-		}
+		$where['i_del_ts'] = null;
 
-		$this->oCursor = $this->oRegistry->Mongo->QUESTIONS->find($where);
+
+
+		/**
+		 * @todo for effecienty explicitely specify which
+		 * doc fields to select or at least tell
+		 * which NOT to select, for example we don't need
+		 * a_edited and a_title
+		 *
+		 */
+		$this->oCursor = $this->oRegistry->Mongo->QUESTIONS->find($where, $this->aFields);
 		d('$this->oCursor: '.gettype($this->oCursor));
 		$this->oCursor->sort($sort);
 
@@ -313,34 +333,35 @@ class Viewquestions extends WebPage
 	protected function makeQlistBody(){
 		d('cp');
 		$uid = $this->oRegistry->Viewer->getUid();
+		d(' uid of viewer: '.$uid);
+		$func = null;
 
+		if($uid > 0){
+			$aUserTags = $this->oRegistry->Viewer['a_f_t'];
+			$showDeleted = $this->oRegistry->Viewer->isModerator();
 
+			$func = function(&$a) use($uid, $aUserTags, $showDeleted){
 
-		/**
-		 * If viewer is moderator then
-		 * Viewer will also be seeing deleted items
-		 * in which case we should add 'deleted' class
-		 * to items
-		 * @todo also may add special class 'watching'
-		 * if user is following this question
-		 * like a binonulars
-		 * for that need to check a_flwrs array
-		 * in question agains Viewer ID
-		 */
-		if($this->oRegistry->Viewer->isModerator()){
-			$func = function(&$a) use($uid){
-				if(!empty($a['i_del_ts'])){
-					$a['deleted'] = ' deleted';
-				}
-
+				/**
+				 * @todo translate string
+				 */
 				if($uid == $a['i_uid'] || (!empty($a['a_uids']) && in_array($uid, $a['a_uids'])) ){
-					$a['dot'] = '<div class="fr pad8"><span class="ico person ttt" title="You have contributed to this question">&nbsp;</a></div>';
+					$a['dot'] = '<div class="fr pad2"><span class="ico person ttt" title="You have contributed to this question">&nbsp;</span></div>';
 				}
-			};
-		} else {
-			$func = function(&$a) use($uid){
-				if($uid == $a['i_uid'] || (!empty($a['a_uids']) && in_array($uid, $a['a_uids']) )){
-					$a['dot'] = '<div class="fr pad8"><span class="ico person ttt" title="You have contributed to this question">&nbsp;</a></div>';
+
+				/**
+				 * @todo translate string
+				 */
+				if(!empty($a['a_flwrs']) && in_array($uid, $a['a_flwrs']) ){
+					$a['following_q'] = '<div class="fr pad2"><span class="icoc check ttt" title="You are following this question">&nbsp;</span></div>';
+				}
+
+				/**
+				 * Add special flag if user following
+				 * at least one of the tag of this question.
+				 */
+				if(count(array_intersect($a['a_tags'], $aUserTags)) > 0){
+					$a['following_tag'] = '  followed_tag';
 				}
 			};
 		}

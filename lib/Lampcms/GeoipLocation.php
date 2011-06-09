@@ -97,6 +97,7 @@ class GeoipLocation extends LampcmsObject implements \Serializable
     'dmaCode' => null
 	);
 
+	
 	/**
 	 * Almost the Same as aData but with short keys,
 	 * more suitable for MongoDB
@@ -112,13 +113,13 @@ class GeoipLocation extends LampcmsObject implements \Serializable
     'longitude' => 'lon'
     );
 
+    
     /**
      * Calculate the distance in km between two points.
      * @param Net_GeoIP_Location $loc The other point to which distance will be calculated.
      * @return float The number of km between two points on the globe.
      */
-    public function distance(GeoipLocation $loc)
-    {
+    public function distance(GeoipLocation $loc){
     	$RAD_CONVERT = M_PI / 180;
     	$EARTH_DIAMETER = 2 * 6378.2;
 
@@ -159,14 +160,22 @@ class GeoipLocation extends LampcmsObject implements \Serializable
 
     /**
      * Setter for elements of $this->aData array
+     * Runs val through utf8_encode
+     * This is necessary because values of city or region
+     * could be in non-utf8 encoding
+     * 
+     * @todo must test it thoroughly to make sure it will
+     * always work. The thing is - utf8_encode works only if
+     * input is in latin-1 encoding
+     * Must ask Maxmind about it just to be sure!
+     * 
      * @param string $name
      * @param string $val
      * @return object $this object
      */
-    public function set($name, $val)
-    {
-    	if(array_key_exists($name, $this->aData)){
-    		$this->aData[$name] = $val;
+    public function set($name, $val){
+    	if(\array_key_exists($name, $this->aData)){
+    		$this->aData[$name] = \utf8_encode($val);
     	}
 
     	return $this;
@@ -177,8 +186,7 @@ class GeoipLocation extends LampcmsObject implements \Serializable
      * Getter for $this->aData array
      * @return array
      */
-    public function getData()
-    {
+    public function getData(){
     	return $this->aData;
     }
 
@@ -189,8 +197,7 @@ class GeoipLocation extends LampcmsObject implements \Serializable
      * @return mixed string if value exists or null if it is empty of
      * just does not exist
      */
-    public function __get($name)
-    {
+    public function __get($name){
     	if(array_key_exists($name, $this->aData)){
     		return $this->aData[$name];
     	}
@@ -207,11 +214,11 @@ class GeoipLocation extends LampcmsObject implements \Serializable
      * @param $name
      * @return bool
      */
-    public function __isset($name)
-    {
+    public function __isset($name){
     	return (null !== $this->__get($name));
     }
 
+    
     /**
      * Get array of data but
      * rekeyed to use short keys and
@@ -219,8 +226,7 @@ class GeoipLocation extends LampcmsObject implements \Serializable
      *
      * @return array
      */
-    public function getData2()
-    {
+    public function getData2(){
     	$a = array();
     	foreach($this->aData as $key => $val){
     		if(array_key_exists($key, $this->aData2)){

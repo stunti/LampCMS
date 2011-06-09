@@ -92,9 +92,7 @@ class Exception extends \Exception
 
 	protected $bHtml = false;
 
-	public function __construct($sMessage = null, array $aArgs = null, $intCode = 0,
-	$bHTML = false)
-	{
+	public function __construct($sMessage = null, array $aArgs = null, $intCode = 0, $bHTML = false){
 		parent::__construct($sMessage, $intCode);
 		$this->aArgs = $aArgs;
 		$this->bHTML = $bHTML;
@@ -106,8 +104,7 @@ class Exception extends \Exception
 	 *
 	 * @return array
 	 */
-	public function getArgs()
-	{
+	public function getArgs(){
 		return $this->aArgs;
 	}
 
@@ -117,8 +114,7 @@ class Exception extends \Exception
 	 *
 	 * @return unknown
 	 */
-	public function getHtmlFlag()
-	{
+	public function getHtmlFlag(){
 		return $this->bHtml;
 	}
 
@@ -139,8 +135,7 @@ class Exception extends \Exception
 	 *
 	 * from data in Exception object
 	 */
-	public static function formatException(\Exception $e, $sMessage = '')
-	{
+	public static function formatException(\Exception $e, $sMessage = ''){
 		$sMessage = (!empty($sMessage)) ? $sMessage : $e->getMessage();
 		$sMessage = $e->getMessage();
 		$bHtml = ($e instanceof \Lampcms\Exception) ? $e->getHtmlFlag() : false;
@@ -152,6 +147,7 @@ class Exception extends \Exception
 			$sMessage = ( (defined('LAMPCMS_DEBUG')) && true === LAMPCMS_DEBUG) ? $e->getMessage() : 'Error occured';//$oTr->get('generic_error', 'exceptions');
 		}
 
+		$sMessage = strip_tags($sMessage);
 		//$sMessage = $oTr->get($sMessage, 'exceptions');
 
 		$aArgs = ($e instanceof \Lampcms\Exception) ? $e->getArgs() : null;
@@ -255,8 +251,7 @@ class NoemailException extends \Lampcms\Exception{}
  */
 class DevException extends Exception
 {
-	public function __construct($message = null, array $aArgs = null, $intCode = 0, $boolHTML = false)
-	{
+	public function __construct($message = null, array $aArgs = null, $intCode = 0, $boolHTML = false){
 		/**
 		 * sets the error code to E_ERROR, which will cause the Log observer
 		 * to set high priority in the emails sent to admins/developers
@@ -273,8 +268,7 @@ class DBException extends DevException
 {
 	protected $sqlState;
 
-	public function __construct($message, $mysqlErrCode = 0, $sqlState = 0)
-	{
+	public function __construct($message, $mysqlErrCode = 0, $sqlState = 0){
 		parent::__construct($message, null, $mysqlErrCode);
 		$this->sqlState = $sqlState;
 	}
@@ -308,21 +302,17 @@ class PDODuplicateException extends DBException
 	 */
 	protected $dupKey;
 
-	public function __construct($message, $dupValue, $key)
-	{
+	public function __construct($message, $dupValue, $key){
 		parent::__construct($message, 1062, 23000);
 		$this->dupValue = $dupValue;
 		$this->dupKey = $key;
-
 	}
 
-	public function getDupValue()
-	{
+	public function getDupValue(){
 		return $this->dupValue;
 	}
 
-	protected function getDupKey()
-	{
+	protected function getDupKey(){
 		return $this->dupKey;
 	}
 }
@@ -398,8 +388,7 @@ class RedirectException extends Exception
 	 * @param str $strNewLocation must be a full url where
 	 * the page can be found
 	 */
-	public function __construct($strNewLocation, $intHttpCode = 301, $boolHTML = true)
-	{
+	public function __construct($strNewLocation, $intHttpCode = 301, $boolHTML = true){
 		parent::__construct($strNewLocation, null, $intHttpCode, $boolHTML);
 	}
 }
@@ -429,8 +418,7 @@ class FormException extends DevException{
 	 * vsprintf. This is in case we need to translate the error message
 	 * and then apply the replacement vars.
 	 */
-	public function __construct($sMessage, $formFields = null, array $aArgs = null)
-	{
+	public function __construct($sMessage, $formFields = null, array $aArgs = null){
 		parent::__construct($sMessage, $aArgs);
 
 		if(is_string($formFields)){
@@ -440,8 +428,8 @@ class FormException extends DevException{
 		$this->aFields = $formFields;
 	}
 
-	public function getFormFields()
-	{
+	
+	public function getFormFields(){
 		return $this->aFields;
 	}
 }
@@ -457,6 +445,15 @@ class GFCAuthException extends ExternalAuthException{}
 class TwitterAuthException extends ExternalAuthException{}
 
 class FacebookAuthException extends ExternalAuthException{}
+/**
+ * This exception contains details
+ * that can be shown to the user.
+ * For example if Facebook server timed-out
+ * it's better to throw this exception so that
+ * user will see some meaningful details
+ *
+ */
+class FacebookAuthUserException extends FacebookAuthException{}
 
 class CaptchaLimitException extends Exception{}
 
@@ -506,6 +503,9 @@ class HttpResponseCodeException extends HttpResponseErrorException
 	 * @var int
 	 */
 	protected $httpResponseCode;
+	
+	
+	protected $innerException = null;
 
 	/**
 	 * Constructor
@@ -525,9 +525,10 @@ class HttpResponseCodeException extends HttpResponseErrorException
 		 * which does NOT accept the third param,
 		 * so we must only pass $message and $code here!
 		 */
-		parent::__construct($message, $code);
+		parent::__construct($message,null, $code);
 
 		$this->httpResponseCode = $httpCode;
+		$this->innerException = $prevException;
 	}
 
 	/**
@@ -535,9 +536,12 @@ class HttpResponseCodeException extends HttpResponseErrorException
 	 *
 	 * @return int value of $this->httpResponseCode
 	 */
-	public function getHttpCode()
-	{
+	public function getHttpCode(){
 		return $this->httpResponseCode;
+	}
+	
+	public function getInnerException(){
+		return $this->innerException;
 	}
 }
 
@@ -585,14 +589,13 @@ class HttpRedirectException extends HttpResponseCodeException
 
 
 	public function __construct($newLocation, $httpCode, $code = 0, Exception $prevException = null){
-		$m = 'URI changed to '.$newLocation;
+		$m = 'Http Redirect Detected! URI changed to '.$newLocation;
 
 		parent::__construct($m, $httpCode, $code, $prevException);
-
 		$this->newURI = $newLocation;
-
 	}
 
+	
 	/**
 	 * Getter for $newURI member variable
 	 *
@@ -600,12 +603,12 @@ class HttpRedirectException extends HttpResponseCodeException
 	 * This is the value of the new URI sent as a
 	 * result of redirect http message
 	 */
-	public function getNewURI()
-	{
+	public function getNewURI(){
+		
 		return $this->newURI;
 	}
-
 }
+
 
 /**
  * Thrown by Questionparser in case question could not be
@@ -648,4 +651,3 @@ class FilterException extends Exception {}
 
 class HTML2TextException extends Exception{}
 
-?>

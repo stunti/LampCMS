@@ -66,12 +66,6 @@ class Dispatcher implements \SplSubject
 	const EVENT_DISPATCHER_GLOBAL = 'EVENT_DISPATCHER_GLOBAL';
 
 	/**
-	 * array of dispatchers objects
-	 * @var array
-	 */
-	protected static $dispatchers = array();
-
-	/**
 	 * Registered observer callbacks
 	 * @var array
 	 */
@@ -111,53 +105,10 @@ class Dispatcher implements \SplSubject
 	 *                                  notification dispatcher object
 	 * @param string $notificationClass Name of notification class
 	 */
-	public function __construct($name = '__default', $notificationClass = 'Notification')
-	{
+	public function __construct($name = '__default', $notificationClass = 'Notification'){
 		$this->name = $name;
 		$this->notificationClass = $notificationClass;
 		$this->ro[self::EVENT_DISPATCHER_GLOBAL] = array();
-	}
-
-
-	/**
-	 * Returns a notification dispatcher singleton
-	 *
-	 * There is usually no need to have more than one notification
-	 * center for an application so this is the recommended way
-	 * to get a Event_Dispatcher2 object.
-	 *
-	 * @param string $name              Name of the
-	 *                                  notification dispatcher.
-	 * The default notification dispatcher is named __default.
-	 *
-	 * @param string $notificationClass This one is tricky.
-	 * Its the name of class which will be used an
-	 * a notification class.
-	 * By default its an Even_Notification class,
-	 * which extends this class and because
-	 * of it it implements the SplSubject interface.
-	 *
-	 * The ability to set a different class name gives you
-	 * the flexibility to use your very own class
-	 * as an event notification class.
-	 * If you decide that you really need to write and use
-	 * your own notification class,
-	 * then make sure it implements the SplSubject interface
-	 * and make sure to include the path to
-	 * your class definition somewhere in your script
-	 * that uses this class
-	 * If you have no clue what this means, then
-	 * leave the default value!
-	 *
-	 * @return object Event_Dispatcher2
-	 */
-	public static final function getInstance($name = '__default', $notificationClass = 'Notification')
-	{
-		if (!isset(self::$dispatchers[$name]) || !isset(self::$dispatchers[$name][$notificationClass]) ) {
-			self::$dispatchers[$name][$notificationClass] = new self($name, $notificationClass);
-		}
-
-		return self::$dispatchers[$name][$notificationClass];
 	}
 
 
@@ -166,8 +117,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return string name of default notification class
 	 */
-	public function getNotificationName()
-	{
+	public function getNotificationName(){
 		return $this->notificationClass;
 	}
 
@@ -178,8 +128,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return string with info about this object
 	 */
-	public function __toString()
-	{
+	public function __toString(){
 		return 'Instance of Dispatcher "_name: "'.$this->getName().' notification object name: '.$this->getNotificationName();
 	}
 
@@ -217,8 +166,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object $this
 	 */
-	public function addObserver($callback, $nName = null, $class = null)
-	{
+	public function addObserver($callback, $nName = null, $class = null){
 		$nName = (null !== $nName) ? $nName : self::EVENT_DISPATCHER_GLOBAL;
 		$aCallback = $this->checkCallback($callback);
 		extract($aCallback);
@@ -241,8 +189,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object $this
 	 */
-	protected function postPendingEvents($callback, $nName = self::EVENT_DISPATCHER_GLOBAL, $class = null)
-	{
+	protected function postPendingEvents($callback, $nName = self::EVENT_DISPATCHER_GLOBAL, $class = null){
 		if (isset($this->pending[$nName])) {
 			d(' Posting pending event '.$nName);
 
@@ -267,8 +214,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return array
 	 */
-	public function getPendingEvents()
-	{
+	public function getPendingEvents(){
 		return $this->pending;
 	}
 
@@ -295,13 +241,11 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object $this
 	 */
-	public function attach(\SplObserver $observer)
-	{
+	public function attach(\SplObserver $observer){
 		$reg = get_class($observer).'::update';
 		$callback = array($observer, 'update');
 			
-		$this->ro[self::EVENT_DISPATCHER_GLOBAL][$reg] = array(
-                                    'callback' => $callback);
+		$this->ro[self::EVENT_DISPATCHER_GLOBAL][$reg] = array('callback' => $callback);
 
 		return $this->postPendingEvents($callback);
 	}
@@ -317,8 +261,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return void
 	 */
-	public function detach(\SplObserver $observer)
-	{
+	public function detach(\SplObserver $observer){
 		$reg = get_class($observer).'::update';
 		if (array_key_exists(self::EVENT_DISPATCHER_GLOBAL, $this->ro) && isset($this->ro[self::EVENT_DISPATCHER_GLOBAL][$reg])) {
 			unset($this->ro[self::EVENT_DISPATCHER_GLOBAL][$reg]);
@@ -331,6 +274,7 @@ class Dispatcher implements \SplSubject
 
 	}
 
+	
 	/**
 	 * Posts the {@link Event_Notification2} object
 	 * Even though this method is public, you should not use it directly,
@@ -348,8 +292,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return  object  The notification object
 	 */
-	protected function _notify(Notification $notification, $pending = true, $bubble = true, $objClass = null, $nName = null)
-	{
+	protected function _notify(Notification $notification, $pending = true, $bubble = true, $objClass = null, $nName = null){
 		$objClass = (null !== $objClass) ? $objClass :  get_class($notification->getNotificationObject());
 		$nName = (null !== $nName) ? $nName : $notification->getNotificationName();
 		d(' $nName: '.$nName);
@@ -439,13 +382,13 @@ class Dispatcher implements \SplSubject
 		return $notification;
 	}
 
+	
 	/**
 	 * calls notify() on nested dispatchers if nested dispatchers exist
 	 *
 	 * @return object $this
 	 */
-	protected function notifyNestedDispatchers($notification, $pending, $bubble, $objClass, $nName)
-	{
+	protected function notifyNestedDispatchers($notification, $pending, $bubble, $objClass, $nName){
 
 		if (!empty($this->nestedDispatchers)) {
 			foreach ($this->nestedDispatchers as $oNested) {
@@ -475,6 +418,7 @@ class Dispatcher implements \SplSubject
 		return $this;
 	}
 
+	
 	/**
 	 * Performes check on $callback string
 	 *
@@ -495,8 +439,7 @@ class Dispatcher implements \SplSubject
 	 * @throws Event_Dispatcher_User_Exception
 	 * if something is not right with $callback
 	 */
-	protected function checkCallback($callback)
-	{
+	protected function checkCallback($callback){
 		if (is_array($callback)) {
 			if (!array_key_exists('0', $callback) || !array_key_exists('1', $callback) || (count($callback) > 2) ) {
 				throw new \InvalidArgumentException('Callback array MUST have exactly 2 elements with keys 0 (with value of class name or object) and 1 (with value of method name)');
@@ -559,12 +502,8 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object  The notification object acts as an extra filter.
 	 */
-	public function post($object, $nName, $info = array(), $pending = true, $bubble = true)
-	{
-		//echo __LINE__.' '.__NAMESPACE__.' $this->notificationClass: '.$this->notificationClass;
-		//exit;
-		//$notification = new $this->notificationClass($object, $nName, $info);
-
+	public function post($object, $nName, $info = array(), $pending = true, $bubble = true){
+		
 		$notification = new Notification($object, $nName, $info);
 		
 		$objClass = get_class($object);
@@ -582,8 +521,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return bool    True if an observer was removed, false otherwise
 	 */
-	public function removeObserver($callback, $nName = null, $class = null)
-	{
+	public function removeObserver($callback, $nName = null, $class = null){
 		$nName = (null !== $nName) ? $nName : self::EVENT_DISPATCHER_GLOBAL;
 		$aCallback = $this->checkCallback($callback);
 		extract($aCallback);
@@ -608,6 +546,7 @@ class Dispatcher implements \SplSubject
 		return $removed;
 	}
 
+	
 	/**
 	 * Check, whether the specified observer has been registered with the
 	 * dispatcher
@@ -618,8 +557,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return  bool        True if the observer has been registered, false otherwise
 	 */
-	public function observerRegistered($callback, $nName = self::EVENT_DISPATCHER_GLOBAL, $class = null)
-	{
+	public function observerRegistered($callback, $nName = self::EVENT_DISPATCHER_GLOBAL, $class = null){
 		$aCallback = $this->checkCallback($callback);
 		extract($aCallback);
 
@@ -644,8 +582,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return  array       List of all observers
 	 */
-	public function getObservers($nName = self::EVENT_DISPATCHER_GLOBAL, $class = null)
-	{
+	public function getObservers($nName = self::EVENT_DISPATCHER_GLOBAL, $class = null){
 		$observers = array();
 		if (!isset($this->ro[$nName])) {
 
@@ -667,8 +604,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return array
 	 */
-	public function getRegisteredObservers()
-	{
+	public function getRegisteredObservers(){
 		return $this->ro;
 	}
 
@@ -680,11 +616,11 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return string     name of the dispatcher
 	 */
-	public function getName()
-	{
+	public function getName(){
 		return $this->name;
 	}
 
+	
 	/**
 	 * Add a new nested dispatcher
 	 *
@@ -702,21 +638,20 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object $this
 	 */
-	public function addNestedDispatcher(Dispatcher $dispatcher)
-	{
+	public function addNestedDispatcher(Dispatcher $dispatcher){
 		$name = $dispatcher->getName();
 		$this->nestedDispatchers[$name] = $dispatcher;
 
 		return $this;
 	}
 
+	
 	/**
 	 * For information and debugging only!
 	 * @return string array of names of nested dispatchers
 	 * or string 'none' if there are no nested dispatchers
 	 */
-	public function getNestedDispatchers()
-	{
+	public function getNestedDispatchers(){
 		return (empty($this->nestedDispatchers)) ? 'none' : print_r(array_keys($this->nestedDispatchers), 1);
 	}
 
@@ -728,8 +663,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return   object $this
 	 */
-	public function removeNestedDispatcher($dispatcher)
-	{
+	public function removeNestedDispatcher($dispatcher){
 		if (is_object($dispatcher)) {
 			$dispatcher = $dispatcher->getName();
 		}
@@ -752,8 +686,7 @@ class Dispatcher implements \SplSubject
 	 *
 	 * @return object $this
 	 */
-	public final function setNotificationClass($class)
-	{
+	public final function setNotificationClass($class){
 		if (!isset($this->notificationClass)) {
 			throw new \RuntimeException('The method setNotificationClass can ONLY be called on Dispatcher object. It cannot be called on any child objects!');
 		}
@@ -762,5 +695,4 @@ class Dispatcher implements \SplSubject
 			
 		return $this;
 	}
-
 }

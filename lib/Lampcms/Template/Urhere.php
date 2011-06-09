@@ -49,13 +49,23 @@
  *
  */
 
- 
+
 namespace Lampcms\Template;
 
 use Lampcms\LampcmsObject;
 use Lampcms\Registry;
 
+/**
 
+* Class for handling creation of tabbed navigation
+* and passing the name of the 'currently active' tab.
+* This will greate the "You are here" effect - the current
+* 'active' tab will be styled as "active" while other like
+* regular tags.
+*
+* @author Dmitri Snytkine
+*
+*/
 class Urhere extends LampcmsObject
 {
 
@@ -89,21 +99,32 @@ class Urhere extends LampcmsObject
 
 
 	/**
-	 * @todo translate all items in $this->vars keys
 	 *
 	 * @param string $tpl name of template class file
 	 *
 	 * @param string $current name of tab that should
 	 * be set as current
 	 *
+	 * @param array $vars this can be used to pass array of replacement
+	 * vars to template. Values from this array will be merged
+	 * with template's own array and if same keys exist then values
+	 * from this $vars array will override the template's default vars
+	 *
+	 * @param Callable function $func if passed will be used
+	 * by template as callback function. If you need to pass callback
+	 * but not passing any array $vars then the right way to call
+	 * this method is $obj->get('tmpSomeTemplate', 'someparam', null, $func)
 	 */
-	public function get($tpl, $current = ''){
+	public function get($tpl, $current = '', array $vars = null, $func = null){
 		$template = $tpl;
 		$aVars = $template::getVars();
 		if(array_key_exists($current.'_c', $aVars)){
 			$aVars[$current.'_c'] = '_current';
 		}
+		if(null !== $vars){
+			$aVars = array_merge($aVars, $vars);
+		}
 
-		return $template::parse($aVars);
+		return $template::parse($aVars, $func);
 	}
 }

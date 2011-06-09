@@ -56,16 +56,13 @@ class tplU3 extends Lampcms\Template\Template
 {
 
 	protected static function func(&$a){
-
-		if(empty($a['avatar']) && !empty($a['avatar_external'])){
+		if(!empty($a['avatar'])){
+			$a['avatar'] = AVATAR_IMG_SITE.'/w/img/avatar/sqr/'.$a['avatar'];
+		} elseif (!empty($a['avatar_external'])){
 			$a['avatar'] = $a['avatar_external'];
-		}
-
-		if(empty($a['avatar']) && !empty($a['gravatar']) && !empty($a['email'])){
-			$a['avatar'] = $a['gravatar']['url'].hash('md5', $a['email']).'?s='.$a['gravatar']['size'].'&d='.$a['gravatar']['fallback'].'&r='.$a['gravatar']['rating'];
-		}
-
-		if(empty($a['avatar'])){
+		} elseif (!empty($a['gravatar']) && !empty($a['email'])){
+			$a['avatar'] = $a['gravatar']['url'].hash('md5', $a['email']).'?s=36'.'&d='.$a['gravatar']['fallback'].'&r='.$a['gravatar']['rating'];
+		} else {
 			$a['avatar'] = IMAGE_SITE.'/images/avatar.png';
 		}
 

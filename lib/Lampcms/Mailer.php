@@ -82,7 +82,7 @@ class Mailer extends LampcmsObject
 	 * that cursor contains several hundreds of records
 	 *
 	 * Sends our emails using the mail()
-	 * but can be sent from inside the register_shutdown_function()
+	 * but can be sent from inside the runLater
 	 * This way function returns immediately
 	 *
 	 * Also accept Iteractor so we can use the
@@ -119,7 +119,7 @@ class Mailer extends LampcmsObject
 	 * @param string $body
 	 *
 	 * @param bool $sendLater if true (default) then will run
-	 * via the register_shutdown_function(), otherwise
+	 * via the runLater, otherwise
 	 * will run immediately. So if this method itself is
 	 * invoked from some registered shutdown function then it
 	 * makes sense to not use the 'later' feature.
@@ -145,11 +145,12 @@ class Mailer extends LampcmsObject
 		$aHeaders['Reply-To'] = $this->adminEmail;
 		$headers = \Lampcms\prepareHeaders($aHeaders);
 
+		d('$subject: '.$subject.' body: '.$body.' headers: '.$headers.' $aTo: '.print_r($aTo, 1));
+
 		$callable = function() use ($subject, $body, $headers, $aTo, $func){
 
 			$total = (is_array($aTo)) ? count($aTo) : $aTo->count();
-			d('total: '.$total);
-
+				
 			/**
 			 * @todo deal with breaking up
 			 * the long array/cursor into
@@ -211,13 +212,11 @@ class Mailer extends LampcmsObject
 							
 						continue;
 					}
-
-					d('sending to: '.$to);
+					
+					
 					$ER = error_reporting(0);
 					if(true !== @\mail($to, $subject, $body, $headers)){
-						if(function_exists('d')){
-							d('Server was unable to send out email at this time');
-						}
+
 					}
 					error_reporting($ER);
 				}
@@ -226,7 +225,7 @@ class Mailer extends LampcmsObject
 		};
 
 		if($sendLater){
-			register_shutdown_function($callable);
+			runLater($callable);
 		} else {
 			$callable();
 		}
@@ -283,7 +282,7 @@ class Mailer extends LampcmsObject
 		 */
 
 		$cID = spl_object_hash($cur);
-		$body = $body ."\n\n_______\ncid: ".$cID."\n";
+		//$body = $body ."\n\n_______\ncid: ".$cID."\n";
 
 		$aEmails = array();
 		foreach($cur as $a){
@@ -297,14 +296,9 @@ class Mailer extends LampcmsObject
 				$aEmails[] = $a['email'];
 			}
 
-			if(function_exists('d')){
-				d('eEmails: '.print_r($aEmails, 1));
-			}
-
-				
 		}
 
-		$aEmails = array_unique($aEmails);
+		$aEmails = \array_unique($aEmails);
 		/**
 		 *
 		 * @todo if count($aEmails) > 100 then formMail,
@@ -360,8 +354,5 @@ class Mailer extends LampcmsObject
 	public function forkMail(array $aTo, $subject, $body){
 
 	}
-
-
-
 
 }

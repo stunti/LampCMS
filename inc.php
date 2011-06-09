@@ -49,14 +49,15 @@ if(function_exists('mb_internal_encoding')){
 	mb_internal_encoding("UTF-8");
 }
 
-function exception_handler($e)
-{
-	echo 'Eeeeee '.$e->getMessage()."\n<br>";
+function exception_handler($e){
+	//echo 'Eeeeee '.$e->getMessage()."\n<br>";
 	try {
-		$strHtml =  'ooopsy... '.Lampcms\Responder::makeErrorPage('<strong>Error:</strong> '.Lampcms\Exception::formatException($e));
+		$err =  Lampcms\Responder::makeErrorPage('<strong>Error:</strong> '.Lampcms\Exception::formatException($e));
 		$extra = (isset($_SERVER)) ? ' $_SERVER: '.print_r($_SERVER, 1) : ' no extra';
-		mail(DEVELOPER_EMAIL, 'ErrorHandle in inc.php', $strHtml.$extra);
-		exit ($strHtml);
+		if(strlen(trim(constant('DEVELOPER_EMAIL'))) > 1){
+			@mail(DEVELOPER_EMAIL, 'ErrorHandle in inc.php', $err.$extra);
+		}
+		exit ($err);
 	}catch(\Exception $e) {
 		echo 'Error in Exception handler: : '.$e->getMessage().' line '.$e->getLine().$e->getTraceAsString();
 	}
@@ -68,6 +69,7 @@ function exception_handler($e)
  *
  */
 if(!function_exists('fastcgi_finish_request')){
+	define('NO_FFR', true);
 	function fastcgi_finish_request(){}
 }
 
@@ -80,6 +82,9 @@ $lampcmsClasses = $libDir.DIRECTORY_SEPARATOR.'Lampcms'.DIRECTORY_SEPARATOR;
 require $lampcmsClasses.'Interfaces'.DIRECTORY_SEPARATOR.'All.php';
 require $lampcmsClasses.'Exception.php';
 require $lampcmsClasses.'Object.php';
+require $lampcmsClasses.'Responder.php';
+require $lampcmsClasses.'Mongo'.DIRECTORY_SEPARATOR.'Collections.php';
+require LAMPCMS_PATH.DIRECTORY_SEPARATOR.'Mycollections.php';
 require $lampcmsClasses.'Ini.php';
 require $lampcmsClasses.'Log.php';
 require $lampcmsClasses.'Request.php';
@@ -89,6 +94,18 @@ require $lampcmsClasses.'User.php'; // User is always used
 require $lampcmsClasses.'SplClassLoader.php';
 require $lampcmsClasses.'Registry.php';
 require $lampcmsClasses.'Template'.DIRECTORY_SEPARATOR.'Template.php';
+
+/**
+ * Points.php is in non-standard directory,
+ * in fact this file is not even included in distro
+ * User must rename Points.php.dist to Points.php
+ * That's why we should manually included it 
+ * because autoloader will not be able to find it.
+ * This file only contains a few constants - it's cheap
+ * to include it every time, and with APC cache it will
+ * be cached.
+ */
+require LAMPCMS_PATH.DIRECTORY_SEPARATOR.'Points.php';
 
 
 
@@ -153,59 +170,9 @@ function LampcmsErrorHandler($errno, $errstr, $errfile, $errline)
 }
 
 $old_error_handler = set_error_handler("LampcmsErrorHandler");
+// autoloader here
+require 'autoload.php';
 
-/**
- * Autoloader for vtemplates
- *
- * @param string $classname
- */
-function templateLoader($className){
-
-	//d('className: '.$className);
-
-	/**
-	 * This is important
-	 * This autoloader will be the first
-	 * one in the __autoload stack (we pass true as 3rd arg
-	 * to spl_autoload_register())
-	 *
-	 * Since this autoload can only
-	 * handle template files, any file
-	 * not starting with 'tpl' is not
-	 * the responsibility of this loader
-	 * and we must return false to save further
-	 * pointless processing.
-	 */
-	if(0 !== strpos($className, 'tpl') ){
-
-		return false;
-	}
-
-	$styleId = (defined('STYLE_ID')) ? STYLE_ID : '1';
-	$dir = (defined('VTEMPLATES_DIR')) ? VTEMPLATES_DIR : 'www';
-
-	$file = LAMPCMS_WWW_DIR.'style'.DIRECTORY_SEPARATOR.STYLE_ID.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.$className.'.php';
-	d('looking for template file : '.$file);
-
-	/**
-	 * Smart fallback to www dir
-	 * if template does not exist in mobile version
-	 * But if template file also does not exist in www
-	 * and in mobile dir, then it will raise an error
-	 * beause we using require this time instead in include  && ('www' !== $dir)
-	 */
-	if( ( false === include($file)) && ('www' !== $dir) ){
-		d('Unable to include template file '.$file.' looking if www dir');
-
-		require LAMPCMS_WWW_DIR.'style'.DIRECTORY_SEPARATOR.STYLE_ID.DIRECTORY_SEPARATOR.'www'.DIRECTORY_SEPARATOR.$className.'.php';
-	}
-
-	return true;
-}
-
-$oLoader = new Lampcms\SplClassLoader(null, $libDir);
-$oLoader->register();
-spl_autoload_register('templateLoader', false, true);
 $oRegistry = \Lampcms\Registry::getInstance();
 
 try{
@@ -219,9 +186,13 @@ try{
 	define('LAMPCMS_SALT', $oINI->SALT);
 	define('COOKIE_SALT', $oINI->COOKIE_SALT);
 	define('DEFAULT_LANG', $oINI->DEFAULT_LANG);
-	define('COOKIE_DOMAIN', $oINI->COOKIE_DOMAIN);
+	define('COOKIE_DOMAIN', $oINI->COOKIE_DOMAIN );
 	define('IMAGE_SITE', $oINI->IMAGE_SITE);
-	define('GEOIP_FILE', $oINI->GEOIP_FILE);
+	$geofile = trim($oINI->GEOIP_FILE);
+	if(!empty($geofile)){
+		define('GEOIP_FILE', $geofile);
+	}
+	
 	define('AVATAR_IMG_SITE', $oINI->AVATAR_IMG_SITE);
 
 	if (!empty($dataDir)) {

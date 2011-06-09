@@ -125,8 +125,7 @@ class ExternalAuthGfc extends ExternalAuth
 	 *
 	 * @param string $fcauth value of fcauth cookie
 	 */
-	protected function getGfcData()
-	{
+	protected function getGfcData(){
 		$url = 'http://www.google.com/friendconnect/api/people/@viewer/@self?fcauth='.$this->fcauth;
 
 		$oHTTP = new Curl();
@@ -211,15 +210,13 @@ class ExternalAuthGfc extends ExternalAuth
 	 *
 	 *
 	 */
-	protected function revokeFcauth()
-	{
+	protected function revokeFcauth(){
 
 		if(!empty($this->aGfcData['id'])){
-			$this->oRegistry->Mongo->getCollection('USERS_GFC')
-			->update(array('_id' => $this->aGfcData['id']), array('$set' => array('fcauth' => null)));
+			$this->oRegistry->Mongo->USERS_GFC->update(array('_id' => $this->aGfcData['id']), array('$set' => array('fcauth' => null)));
 			d('cp');
 		}
-		
+
 		$this->oUser->offsetUnset('fcauth');
 		$this->oUser->save();
 		$this->oRegistry->Dispatcher->post($this, 'onGfcUserDelete');
@@ -235,8 +232,7 @@ class ExternalAuthGfc extends ExternalAuth
 	 * @return object of type UserGfc which is either a newly
 	 * created user or existing user found by GFC id
 	 */
-	public function getUserObject()
-	{
+	public function getUserObject(){
 
 		$this->getGfcData();
 
@@ -247,8 +243,7 @@ class ExternalAuthGfc extends ExternalAuth
 		 *
 		 */
 
-		$aGfc = $this->oRegistry->Mongo->getCollection('USERS_GFC')
-		->findOne(array('_id' => $this->aGfcData['id']));
+		$aGfc = $this->oRegistry->Mongo->USERS_GFC->findOne(array('_id' => $this->aGfcData['id']));
 
 		if(empty($aGfc) || empty($aGfc['i_uid'])){
 			d('cp');
@@ -278,8 +273,8 @@ class ExternalAuthGfc extends ExternalAuth
 	 *
 	 * @return object $this
 	 */
-	protected function getGfcCookieVal()
-	{
+	protected function getGfcCookieVal(){
+		
 		$cookieName = null;
 		$fcauthSession = 'fcauth'.$this->gfcSiteId.'-s';
 		$fcauthRegular = 'fcauth'.$this->gfcSiteId;
@@ -315,8 +310,7 @@ class ExternalAuthGfc extends ExternalAuth
 	 * post notification onUserUpdate
 	 *
 	 */
-	protected function updateUser()
-	{
+	protected function updateUser(){
 		$oldAvatar = $this->oUser->avatar_external;
 		$newAvatar = $this->aGfcData['thumbnailUrl'];
 
@@ -349,11 +343,10 @@ class ExternalAuthGfc extends ExternalAuth
 	 * @return object $this
 	 *
 	 */
-	protected function createNewUser()
-	{
+	protected function createNewUser(){
 
 		$tzo = Cookie::get('tzo', 0);
-		$username = $this->makeUsername();
+		$username = $this->makeUsername($this->aGfcData['displayName']);
 		/**
 		 * Create new record in USERS collection
 		 * do this first because we need uid from
@@ -366,7 +359,7 @@ class ExternalAuthGfc extends ExternalAuth
 		'i_reg_ts' => time(),
 		'date_reg' => date('r'),
 		'username' => $username,
-		'username_lc' => strtolower($username),
+		'username_lc' => \mb_strtolower($username),
 		'role' => 'external_auth',
 		'lang' => $this->oRegistry->getCurrentLang(),
 		'fcauth' => $this->fcauth,
@@ -376,16 +369,18 @@ class ExternalAuthGfc extends ExternalAuth
 
 
 		$oGeoData = $this->oRegistry->Cache->{sprintf('geo_%s', Request::getIP())};
-		$aProfile = array(
-		'cc' => $oGeoData->countryCode,
-		'country' => $oGeoData->countryName,
-		'state' => $oGeoData->region,
-		'city' => $oGeoData->city,
-		'zip' => $oGeoData->postalCode);
-		d('aProfile: '.print_r($aProfile, 1));
+		if(\is_object($oGeoData)){
+			$aProfile = array(
+			'cc' => $oGeoData->countryCode,
+			'country' => $oGeoData->countryName,
+			'state' => $oGeoData->region,
+			'city' => $oGeoData->city,
+			'zip' => $oGeoData->postalCode);
+			d('aProfile: '.print_r($aProfile, 1));
 
-		$aUser = array_merge($aUser, $aProfile);
-
+			$aUser = array_merge($aUser, $aProfile);
+		}
+		
 		d('aUser: '.print_r($aUser, 1));
 
 		$this->oUser = UserGfc::factory($this->oRegistry, $aUser);
@@ -427,8 +422,7 @@ class ExternalAuthGfc extends ExternalAuth
 	 *
 	 * @param unknown_type $isUpdate
 	 */
-	protected function updateGfcUserRecord($isUpdate = false)
-	{
+	protected function updateGfcUserRecord($isUpdate = false){
 
 		/**
 		 * Create new record or update in USERS_GFC collection
@@ -445,74 +439,9 @@ class ExternalAuthGfc extends ExternalAuth
 
 		d('$aGfc: '.print_r($aGfc, 1));
 
-		$this->oRegistry->Mongo->getCollection('USERS_GFC')->save($aGfc, array('fsync' => true));
+		$this->oRegistry->Mongo->USERS_GFC->save($aGfc, array('fsync' => true));
 
 		return $this;
 	}
 
-
-	/**
-	 * Checks in username of twitter user
-	 * already exists in our regular USERS table
-	 * and if it does then prepends the @ to the username
-	 * otherwise returns twitter username
-	 *
-	 * The result is that we will use the value of
-	 * Twitter username as our username OR the @username
-	 * if username is already taken
-	 *
-	 * @todo change this to use MONGO USERS and use something like
-	 * $any
-	 *
-	 * @return string the value of username that will
-	 * be used as our own username
-	 *
-	 */
-	protected function makeUsername()
-	{
-		$coll = $this->oRegistry->Mongo->getCollection('USERS');
-		$res = null;
-
-		$username = null;
-		$aUsernames = array(
-		preg_replace('/\s+/', '', $this->aGfcData['displayName']),
-		preg_replace('/\s+/', '.', $this->aGfcData['displayName']),
-		preg_replace('/\s+/', '_', $this->aGfcData['displayName']),
-		preg_replace('/\s+/', '-', $this->aGfcData['displayName'])
-		);
-
-		$aUsernames = array_unique($aUsernames);
-
-		d('$aUsernames: '.print_r($aUsernames, 1));
-
-		for($i = 0; $i<count($aUsernames); $i++){
-			$name = strtolower($aUsernames[$i]);
-
-			$res = $coll->findOne(array('username_lc' => $name));
-			d('$res: '.$res);
-			if(empty($res)){
-				$username = $aUsernames[$i];
-				break;
-			}
-		}
-
-		/**
-		 * If still could not find username then
-		 * use brute force and try appending numbers
-		 * to username untill succeed
-		 */
-		if(null === $username){
-			$i = 1;
-			do{
-				$name = strtolower($aUsernames[0]).$i;
-				$res = $coll->findOne(array('username_lc' => $name));
-				if(empty($res)){
-					$username = $aUsernames[0].$i;
-				}
-				d('$res: '.$res);
-			}while(null === $username);
-		}
-
-		return $username;
-	}
 }

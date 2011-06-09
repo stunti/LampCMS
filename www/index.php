@@ -67,7 +67,7 @@ try {
 		throw new Lampcms\Exception('session start error');
 	}
 
-	d('session: '.print_r($_SESSION, 1));
+	//d('session: '.print_r($_SESSION, 1));
 
 	$oRequest = $oRegistry->Request;
 	$a = $oRequest['a'];
@@ -84,17 +84,22 @@ try {
 } catch(\Exception $e) {
 	header("HTTP/1.0 500 Exception");
 	try {
-		$strHtml = 'Ooopsy... '.\Lampcms\Responder::makeErrorPage('<strong>Error:</strong> '.Lampcms\Exception::formatException($e));
-		$extra = (isset($_SERVER)) ? ' $_SERVER: '.print_r($_SERVER, 1) : ' no extra';
-		@mail(DEVELOPER_EMAIL, 'Error in index.php', $strHtml.$extra);
-		echo $strHtml;
+		$sHtml = \Lampcms\Responder::makeErrorPage('<strong>Error:</strong> '.Lampcms\Exception::formatException($e));
+		$extra = (isset($_SERVER)) ? ' $_SERVER: '.print_r($_SERVER, 1) : ' no server';
+		$extra .= 'file: '.$e->getFile(). ' line: '.$e->getLine().' trace: '.$e->getTraceAsString();
+		if(strlen(trim(constant('DEVELOPER_EMAIL'))) > 1){
+			@mail(DEVELOPER_EMAIL, '500 Error in index.php', $sHtml.$extra);
+		}
+		echo $sHtml;
 		fastcgi_finish_request();
 
 	}catch(\Exception $e2) {
-		$strHtml = 'Yayks.. '.Lampcms\Responder::makeErrorPage('<strong>Exception:</strong> '.$e2->getMessage()."\nIn file:".$e2->getFile()."\nLine: ".$e2->getLine());
+		$sHtml = \Lampcms\Responder::makeErrorPage('<strong>Exception:</strong> '.strip_tags($e2->getMessage())."\nIn file:".$e2->getFile()."\nLine: ".$e2->getLine());
 		$extra = (isset($_SERVER)) ? ' $_SERVER: '.print_r($_SERVER, 1) : ' no extra';
-		@mail(DEVELOPER_EMAIL, 'Error in index.php on line '.__LINE__, $strHtml.$extra);
-		echo $strHtml;
+		if(strlen(trim(constant('DEVELOPER_EMAIL'))) > 1){
+			@mail(DEVELOPER_EMAIL, 'Error in index.php on line '.__LINE__, $sHtml.$extra);
+		}
+		echo $sHtml;
 		fastcgi_finish_request();
 	}
 }

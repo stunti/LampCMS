@@ -70,7 +70,35 @@ use Lampcms\Interfaces\RoleInterface;
 class Base extends LampcmsObject
 {
 
+	/**
+	 * Premission required to access this script
+	 * 
+	 * @var string
+	 */
 	protected $permission;
+	
+	
+
+	/**
+	 * Special type of permission check where we don't
+	 * need to check the specific permission but only
+	 * require the user to be logged in. This is faster
+	 * than a full Access Control check.
+	 *
+	 * @var bool
+	 */
+	protected $membersOnly = false;
+
+
+	/**
+	 * Special type of permission check where we don't
+	 * need to check the specific permission but only
+	 * require the user to be NOT logged in. This is faster
+	 * than a full Access Control check.
+	 *
+	 * @var bool
+	 */
+	protected $guestsOnly = false;
 
 
 	/**
@@ -82,10 +110,15 @@ class Base extends LampcmsObject
 	 */
 	protected $bLoggedIn;
 
+
+	public function __construct(Registry $oRegistry){
+		$this->oRegistry = $oRegistry;
+	}
+
+
 	/**
 	 * Updates the value of last_login in LOGIN_LOG table
 	 * along with Geo data and useragent
-	 *
 	 *
 	 * @param integer $intUserId user id
 	 *
@@ -98,8 +131,7 @@ class Base extends LampcmsObject
 	 *
 	 * @return object $this
 	 */
-	protected function updateLastLogin($intUserId = null, $username_date = '', $login_type = 'www')
-	{
+	protected function updateLastLogin($intUserId = null, $username_date = '', $login_type = 'www'){
 		$userId = (null !== $intUserId) ? (int)$intUserId : $this->oRegistry->Viewer->getUid();
 		$i_ts = ( empty($username_date)) ? time() : (int)$username_date;
 		$strIp = Request::getIP();
@@ -111,7 +143,6 @@ class Base extends LampcmsObject
 		return $this;
 
 	}
-
 
 	/**
 	 * Given the $intResourceId and $ip this functon
@@ -266,8 +297,7 @@ class Base extends LampcmsObject
 	 * which would mean a user does not have appropriate
 	 * access privileges
 	 */
-	public function checkAccessPermission($privilege = null, RoleInterface $role = null, $resource = null)
-	{
+	public function checkAccessPermission($privilege = null, RoleInterface $role = null, $resource = null){
 
 		d('$privilege: '.$privilege.' '.var_export($privilege, true));
 
@@ -329,25 +359,27 @@ class Base extends LampcmsObject
 		 *
 		 */
 		$role = (null !== $role) ? $role : $this->oRegistry->Viewer->reload();
-		
+
 		d('role: '.$role);
 
 		/**
 		 * oACL can be cached, which saves about 5-7 milliseconds
 		 * on my dev machine. The downside is that if you
-		 * edit acl.ini you must manually remove 
+		 * edit acl.ini you must manually remove
 		 * Acl key from cache. (from C_Cache collection)
 		 */
 		//$oACL = $this->oRegistry->Cache->Acl;
-		$oACL = new \Lampcms\Acl\Acl();
+		$oACL = $this->oRegistry->Acl;//new \Lampcms\Acl\Acl();
 
 		$roleID = $role->getRoleId();
 		d('$roleID '.$roleID.' $privilege: '.$privilege);
 
 		if(!$oACL->isAllowed($role, $resource, $privilege)){
 			if(!$this->isLoggedin()){
-					
-				throw new AuthException('Please login to perform this action');
+				/**
+				 * @todo translate string
+				 */
+				throw new AuthException('Please Register or Login to perform this action');
 			}
 
 			if(strstr($roleID, 'unactivated')){
@@ -364,6 +396,35 @@ class Base extends LampcmsObject
 		return $this;
 	}
 
+
+
+
+	/**
+	 * Checks the access permissions for current page
+	 * based on values of $this->bMembersOnly,
+	 * $this->bGuestsOnly and logged in status
+	 * For example, if page is available only
+	 * to logged in users, the exception will be
+	 * throws in guest tries to access it
+	 *
+	 * @return object $this
+	 *
+	 * @throws LampcmsException if access level
+	 * error is detected
+	 */
+	protected function checkLoginStatus(){
+		if ($this->membersOnly && !$this->isLoggedIn()) {
+			d('cp must login');
+			throw new MustLoginException('You must login to access this page');
+		}
+
+		if($this->guestsOnly && $this->isLoggedIn()){
+			d('not a guest!');
+			throw new MustLoginException('This page cannot be accessed by a logged in user');
+		}
+
+		return $this;
+	}
 
 	/**
 	 *

@@ -54,10 +54,10 @@ namespace Lampcms\Controllers;
 
 
 
+use \Lampcms\String\HTMLStringParser;
 use \Lampcms\Responder;
 use \Lampcms\Request;
 use \Lampcms\Utf8String;
-use \Lampcms\DomFeedItem;
 
 /**
  * Controller for processing "Edit"
@@ -81,6 +81,14 @@ class Editor extends Edit
 	protected $bRequirePost = true;
 
 	protected $aRequired = array('rid', 'rtype');
+
+	/**
+	 * Object Utf8String represents body
+	 * of question
+	 *
+	 * @var object of type Utf8string
+	 */
+	protected $oBody;
 
 
 	protected function main(){
@@ -116,29 +124,38 @@ class Editor extends Edit
 	 *
 	 * Process submitted form values
 	 */
-	protected function process()
-	{
+	protected function process(){
 		$this->oRegistry->Dispatcher->post($this->oResource, 'onBeforeEdit');
 
 		$formVals = $this->oForm->getSubmittedValues();
 		d('formVals: '.print_r($formVals, 1));
 
 		$this->oResource['b'] = $this->makeBody($formVals['qbody']);
-
+		$this->oResource['i_words'] = $this->oBody->asPlainText()->getWordsCount();
+		
 		/**
-		 * Don't attempt to edit the value of title
+		 * @important Don't attempt to edit the value of title
 		 * for the answer since it technically does not have the title
-		 * and we don't want to change existing one
+		 * If we don't skip this step for Answer then title
+		 * of answer will be removed
 		 */
 		if($this->oResource instanceof \Lampcms\Question){
-			$title = $this->makeTitle($formVals['title']);
-			d('title: '.$title);
+			$oTitle = $this->makeTitle($formVals['title']);
+			$title = $oTitle->valueOf();
 			$this->oResource['title'] = $title;
-			$this->oResource['a_title'] = \Lampcms\TitleTokenizer::factory($title)->getArrayCopy();
+			$this->oResource['url'] = $oTitle->toASCII()->makeLinkTitle()->valueOf();
+			$this->oResource['a_title'] = \Lampcms\TitleTokenizer::factory($oTitle)->getArrayCopy();
+		
+			/**
+			 * @todo
+			 * Need to update 'title' of all answers to this question
+			 * But first check to see if title has actually changed
+			 */
+		
 		}
 
-		$this->oResource->setEdited($this->oRegistry->Viewer, strip_tags($formVals['reason']));
-		$this->oResource->save();
+		$this->oResource->setEdited($this->oRegistry->Viewer, \strip_tags($formVals['reason']));
+		$this->oResource->touch()->save();
 
 		$this->oRegistry->Dispatcher->post($this->oResource, 'onEdit');
 
@@ -146,24 +163,60 @@ class Editor extends Edit
 	}
 
 
+	/**
+	 *
+	 * Update the contents of body
+	 * with edited content
+	 * If this is a question do extra steps;
+	 * unhighlight (just in case that actual highlighed words
+	 * have been edited), then re-apply highlightWords()
+	 * just in case some of the new word that belong to
+	 * tags have been added
+	 *
+	 * @param string $body
+	 *
+	 * @return string html of new body
+	 *
+	 */
 	protected function makeBody($body){
-		$oBody = Utf8String::factory($body)
-		->tidy()
+		/**
+		 * Must pass array('drop-proprietary-attributes' => false)
+		 * otherwise tidy removes rel="code"
+		 */
+		$aEditorConfig = $this->oRegistry->Ini->getSection('EDITOR');
+		$tidyConfig = ($aEditorConfig['ENABLE_CODE_EDITOR']) ? array('drop-proprietary-attributes' => false) : null;
+		
+		$this->oBody = Utf8String::factory($body)
+		->tidy($tidyConfig)
 		->safeHtml()
 		->asHtml();
 
-		$htmlBody = DomFeedItem::loadFeedItem($oBody)->getFeedItem();
-		d('after DomFeedItem: '.$htmlBody);
+		$oBody = HTMLStringParser::factory($this->oBody)->parseCodeTags()->linkify()->reload()->setNofollow();
+
+		if($this->oResource instanceof \Lampcms\Question){
+			$oBody->unhilight()->hilightWords($this->oResource['a_tags']);
+		}
+
+		$htmlBody = $oBody->valueOf();
+
+		d('after HTMLStringParser: '.$htmlBody);
 
 		return $htmlBody;
 	}
 
 
+	/**
+	 * Make new value of title
+	 *
+	 * @param string $title
+	 *
+	 * @return object of type Utf8String
+	 */
 	protected function makeTitle($title){
-		$ret = Utf8String::factory($title)->htmlentities()->trim()->valueOf();
-		d('ret '.$ret);
+		$oTitle = Utf8String::factory($title)->htmlentities()->trim();
+		d('$oTitle '.$oTitle);
 
-		return $ret;
+		return $oTitle;
 	}
 
 
@@ -178,8 +231,7 @@ class Editor extends Edit
 			d('need to update QUESTION');
 
 			try{
-				$this->oRegistry->Mongo->QUESTIONS
-				->update(array('_id' => $this->oResource['i_qid']),
+				$this->oRegistry->Mongo->QUESTIONS->update(array('_id' => $this->oResource['i_qid']),
 				array(
 					'$set' => array(
 									'i_lm_ts' => time(), 
@@ -196,7 +248,7 @@ class Editor extends Edit
 
 
 	protected function returnResult(){
-		
+
 		Responder::redirectToPage($this->oResource->getUrl());
 	}
 }

@@ -67,13 +67,6 @@ namespace Lampcms;
  */
 class Answers extends LampcmsObject
 {
-	/**
-	 * How many answers to show per page
-	 * @todo this should be in settings
-	 *
-	 * @var int
-	 */
-	//protected $perPage = 3;
 
 	/**
 	 * Mongo cursor
@@ -85,7 +78,6 @@ class Answers extends LampcmsObject
 
 	public function __construct(Registry $oRegistry){
 		$this->oRegistry = $oRegistry;
-		//$this->perPage = $oRegistry->Ini->PER_PAGE_ANSWERS;
 	}
 
 
@@ -135,13 +127,18 @@ class Answers extends LampcmsObject
 			$where['i_del_ts'] = null;
 		}
 		
-		/**
-		 * In case of i_ts (by timestamp of answer)
-		 * we actuall need from oldest to newest - Ascending
-		 * and for other types we need Descending order
-		 * 
-		 */
-		$sort = ('i_ts' == $cond) ? array($cond => 1): array($cond => -1);
+		switch($cond){
+			case 'i_ts':
+				$sort = array('i_ts' => 1);
+				break;
+				
+			case 'i_votes':
+				$sort = array('i_votes' => -1);
+				break;
+				
+			default:
+				$sort = array($cond => -1);
+		}
 
 		$cursor = $this->oRegistry->Mongo->ANSWERS->find($where, $aFields);
 		d('$cursor: '.gettype($cursor));

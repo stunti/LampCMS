@@ -70,8 +70,8 @@ class tplQuestion extends Lampcms\Template\Template
 			$a['sticky'] = ' sticky';
 		}
 		
-		if(!empty($a['comments'])){
-			$a['comments_html'] = tplComment::loop($a['comments']);
+		if(!empty($a['a_comments'])){
+			$a['comments_html'] = tplComment::loop($a['a_comments']);
 		}
 	}
 	
@@ -97,7 +97,8 @@ class tplQuestion extends Lampcms\Template\Template
 	'sticky' => '', //19
 	'comments_html' => '', //20
 	'i_comments' => '0', //21
-	'nocomments' => '' //22
+	'nocomments' => '', //22
+	'add_comment' => 'add comment' //23
 	);
 
 	protected static $tpl = '
@@ -136,7 +137,7 @@ class tplQuestion extends Lampcms\Template\Template
 
 		<td class="td_question">
 		<div class="question-body" id="qbody-%1$s">%2$s</div>
-		<div class="tgs">%5$s</div>
+		<div class="fl cb tgs">%5$s</div>
 		<div class="question%19$s controls%16$s uid-%10$s" id="res_%1$s">
 		     <span class="icoc stub fr">&nbsp;</span><span class="ico ttt flag ajax" title="Flag this question as inappropriate"> </span>
 		</div>
@@ -170,7 +171,7 @@ class tplQuestion extends Lampcms\Template\Template
 		<div class="comments%22$s i_comments_%21$s" id="comments-%1$s">
 			%20$s
 			<div class="add_com cb fl">
-				<span class="ico comment fl"> </span><a href="#" class="ajax com_link uid-%10$s" id="comlink_%1$s">add comment</a>
+				<span class="ico comment fl"> </span><a href="#" class="ajax com_link uid-%10$s" id="comlink_%1$s">%23$s</a>
 			</div>
 		</div>
 	</td>

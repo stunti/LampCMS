@@ -56,12 +56,19 @@ namespace Lampcms;
  * Class for handling OUR Incoming HTTP Request
  * including headers and query string
  *
- * @todo this class looks a little confused and
- * unsure about itself.
- * Why not just extend ArrayDefaults and use default value of 1?
- *
- * Why do we even need getParam if it just delegates
- * to getFiltered()?
+ * uses memoization. When value has been
+ * filtered just put it into cache array so requests
+ * for the same var will not have to go through
+ * the same process of resolving  and filtering
+ * Must first examine to possibilities of when user
+ * sets the value of Request var by simply
+ * doing somehting like $oRequest['myvar'] = 'new value'
+ * It will just set the value into the underlying array object
+ * but no way we can also put it into cache. This means if
+ * user does this and then requests this var again, the cached
+ * version will be returned and not the one user just added
+ * to the object. This is super not-cool. Easy solution
+ * is to just add to this->aFiltered from offsetSet()
  *
  * @author Dmitri Snytkine
  *
@@ -80,38 +87,49 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * Array of filtered params
 	 * @var array but initially set to null
 	 */
-	protected $aFiltered = null;
+	protected $aFiltered = array();
 
 	protected static $ajax = null;
 
+	/**
+	 * Array of UTF8 objects
+	 *
+	 * @var array of objects of type Utf8String
+	 */
+	protected $aUTF8 = array();
 
-	public function __construct(array $array){
-		parent::__construct($array);
+	/**
+	 * GeoData object
+	 *
+	 * @var object of type GeoipLocation representing
+	 * geolocation for the ip address of request
+	 */
+	protected $oGeo;
+
+
+	public function __construct(array $a = null){
+		$a = (null === $a) ? array() : $a;
+		parent::__construct($a);
 	}
 
 
 	/**
 	 *
-	 * Emulates the HttpQueryString::get() method
+	 * Mimics the HttpQueryString::get() method
 	 *
 	 * @param string $name
 	 * @param string $type 's' for string, 'i' for 'int', 'b' for bool
+	 * will accept other values but only understands these 3 and will default
+	 * to 's' (string) if unknown value is used
+	 *
 	 * @param string $default default value to return in
 	 * case param $name is not found
 	 */
 	public function get($name, $type = 's', $default = null){
 
-		if(!$this->offsetExists($name)){
-			$val = $default;
-		} else {
-				
-			$val = $this->getFiltered($name);
-		}
+		$val = (!$this->offsetExists($name)) ? $default : $this->offsetGet($name);
 
 		switch(true){
-			case ('s' === $type):
-				$val = (string)$val;
-				break;
 
 			case ('b' === $type):
 				$val = (bool)$val;
@@ -120,6 +138,10 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 			case ('i' === $type):
 				$val = (int)$val;
 				break;
+
+			default:
+				$val = (string)$val;
+				break;
 		}
 
 		return $val;
@@ -127,13 +149,12 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 
 
 	/**
-	 * Singleton method
+	 * Factory method
 	 *
-	 * @param array $aRequired
+	 * @param array $aRequired array of required
+	 * params
 	 *
 	 * @return object of this class
-	 * @throws BadFunctionCallException if any of required
-	 * params are missing
 	 */
 	public static function factory(array $aRequired = array()){
 
@@ -151,6 +172,7 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 
 		return $o;
 	}
+
 
 	/**
 	 * Set array of params that are required
@@ -183,12 +205,13 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 *
 	 * @return array $this->aFiltered
 	 */
-	public function getArray(){
+	public function getArray($resetFiltered = true){
 
-		if(null === $this->aFiltered){
-			$a = $this->getArrayCopy();
-			foreach($a as $key => $val) {
-				$this->aFiltered[$key] = $this->getFiltered($key);
+		$a = $this->getArrayCopy();
+		d('raw request array: '.print_r($a, 1));
+		foreach($a as $key => $val) {
+			if(!array_key_exists($key, $this->aFiltered)){
+				$this->aFiltered[$key] = $this->offsetGet($key);
 			}
 		}
 
@@ -200,7 +223,7 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * Initial check to see if request contains
 	 * all required parameterns
 	 *
-	 * @throws BadFunctionCallException if at least
+	 * @throws LogicException if at least
 	 * one required param is missing
 	 *
 	 * @return object $this
@@ -209,7 +232,7 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 		if(!empty($this->aRequired)){
 			foreach($this->aRequired as $var){
 				if(!$this->offsetExists($var)){
-					throw new \BadFunctionCallException('Missing required query param: '.$var);
+					throw new \LogicException('Missing required query param: '.$var);
 				}
 			}
 		}
@@ -224,6 +247,13 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * @param string $offset
 	 */
 	public function offsetGet($offset){
+
+		/**
+		 * Offset (param in url or in post)
+		 * can only be ASCII char
+		 */
+		$offset = \filter_var($offset, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
+
 		/**
 		 * For 'a' and 'pageID' return
 		 * default values and don't go through
@@ -235,68 +265,39 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 				return 'viewquestions';
 			} elseif('pageID' === $offset){
 				return 1;
-			} else {
-				throw new DevException('Request param '.$offset.' does not exist');
 			}
+			
+			throw new \Lampcms\DevException('Request param '.$offset.' does not exist');
 		}
-
+		
 		return $this->getFiltered($offset);
 	}
 
 
 	/**
+	 * This overrides the ArrayObject's own
+	 * method so that if something is added
+	 * to this object by using
+	 * $oRequest['var'] = $val then it is
+	 * automatically also added to aFiltered array
 	 *
 	 * @param $key
 	 * @param $val
 	 */
 	public function offsetSet($key, $val){
 
-		$this->aFiltered = null;
-
 		parent::offsetSet($key, $val);
+		$this->aFiltered[$key] = $val;
 	}
 
-
-	/**
-	 * Get value of query string param
-	 * if it exists or return $default
-	 * if it does not exist
-	 *
-	 * @param string $var name of query string
-	 * param
-	 *
-	 * @todo remove this and use get() or normal offsetGet() instead!
-	 *
-	 * @return mixed string|bool|int filtered value of param
-	 * or value of supplied $default
-	 *
-	 *
-	 */
-	/*public function getParam($var, $default = 1){
-
-	if(!$this->offsetExists($var)){
-	$this->offsetSet($var, $default);
-
-	return $default;
-	}
-
-	return $this->getFiltered($var);
-	}*/
-
-
-	/**
-	 * @todo remove this soon
-	 *
-	 */
-	/*public function __get($param){
-		e('trying to get '.$param.' via __get');
-
-		return $this->offsetGet($param);
-		}*/
 
 	/**
 	 * Get filtered value of query string
-	 * param
+	 * param. Use $this->aFiltered as storage
+	 * for cached resolved values. This way multiple
+	 * requests for the same $name will only go
+	 * through filter once and then resolved filtered value
+	 * will be reused
 	 *
 	 * @param string $name name of query string param
 	 *
@@ -305,63 +306,115 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 */
 	protected function getFiltered($name){
 
-		$val = parent::offsetGet($name);
+		d('getting filtered for '.$name);
 
-		if('a' === $name && !empty($val)){
-			$expression = '/^[[:alpha:]\-]{1,20}$/';
-			if(!filter_var($val, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => $expression)))){
-				throw new \InvalidArgumentException('Invalid value of "a" it can only contain letters and a hyphen and be limited to 20 characters in total was: '.$val);
+		if(!\array_key_exists($name, $this->aFiltered)){
+			d('cp not yet in $this->aFiltered');
+
+			$val = parent::offsetGet($name);
+
+			if('a' === $name && !empty($val)){
+				$expression = '/^[[:alpha:]\-]{1,20}$/';
+				if(!\filter_var($val, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => $expression)))){
+					throw new \InvalidArgumentException('Invalid value of "a" it can only contain letters and a hyphen and be limited to 20 characters in total was: '.\htmlentities($val));
+				}
+
+				$ret = $val;
+
+			} elseif(
+			('i_' === \substr(\strtolower($name), 0, 2)) ||
+			('id' === \substr(\strtolower($name), -2, 2))){
+
+				/**
+				 * FILTER_VALIDATE_INT
+				 * does not seem to accept 0 as a valid int!
+				 * this sucks, so instead going to use is_numeric
+				 */
+				if(!\is_numeric($val) || ($val < 0) || ($val > 99999999999)){
+					throw new \InvalidArgumentException('Invalid value of "'.$name.'". It can only be a number between 0 and 99999999999 was: '.\htmlentities($val));
+				}
+
+				$ret = (int)$val;
+
+			} elseif('_hex' === substr(\strtolower($name), -4, 4)){
+				$expression = '/^[0-9A-F]{6}$/';
+				if(!filter_var($val, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => $expression)))){
+					throw new \InvalidArgumentException('Invalid value of '.$name.' it can only be a hex number. Was: '.\htmlentities($val));
+				}
+
+				$ret = $val;
+
+			} elseif('flag' === \substr(\strtolower($name), -4, 4)){
+
+				/**
+				 * FILTER_VALIDATE_BOOLEAN will not work here
+				 * because it does not accept 0 as valid option,
+				 * only 1, true, on, yes
+				 * it just does not accept any values for 'false'
+				 */
+				if($val != 1){
+					throw new \InvalidArgumentException('Invalid value of '.$name.' It can only be an integer and not greater than 1, it was: '.gettype($val).' val: '.\htmlentities($val));
+				}
+
+				$ret = (bool)$val;
+
+			}elseif('token' === $name){
+				$ret = filter_var($val, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
+			}else {
+				/**
+				 * Do NOT use FILTER_STRIP_LOW, it may look like a good idea but
+				 * it removes all line breaks in text!
+				 */
+				$ret = $val; //filter_var($val, FILTER_SANITIZE_STRING); //, FILTER_FLAG_STRIP_LOW
+
 			}
 
-			$ret = $val;
-
-		} elseif(
-		('i_' === substr(strtolower($name), 0, 2)) ||
-		('id' === substr(strtolower($name), -2, 2))){
-
-			/**
-			 * FILTER_VALIDATE_INT
-			 * does not seem to accept 0 as a valid int!
-			 * this sucks, so instead going to use is_numeric
-			 */
-			if(!is_numeric($val) || ($val < 0) || ($val > 99999999999)){
-				throw new \InvalidArgumentException('Invalid value of "'.$name.'". It can only be a number between 0 and 99999999999 was: '.$val);
-			}
-
-			$ret = (int)$val;
-
-		} elseif('_hex' === substr(strtolower($name), -4, 4)){
-			$expression = '/^[0-9A-F]{6}$/';
-			if(!filter_var($val, FILTER_VALIDATE_REGEXP, array('options' => array('regexp' => $expression)))){
-				throw new \InvalidArgumentException('Invalid value of '.$name.' it can only be a hex number. Was: '.$val);
-			}
-
-			$ret = $val;
-
-		} elseif('flag' === substr(strtolower($name), -4, 4)){
-
-			/**
-			 * FILTER_VALIDATE_BOOLEAN will not work here
-			 * because it does not accept 0 as valid option,
-			 * only 1, true, on, yes
-			 * it just does not accept any values for 'false'
-			 */
-			if(!is_numeric($val) || $val > 1){
-				throw new \InvalidArgumentException('Invalid value of '.$name.' It can only be an integer and not greater than 1, it was: '.gettype($val).' val: '.$val);
-			}
-
-			$ret = (bool)$val;
-
-		}elseif('token' === $name){
-			$ret = filter_var($val, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
+			$this->aFiltered[$name] = $ret;
 		}
 
-		else {
-			//$ret = filter_var($val, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
-			$ret = $val;
+		return $this->aFiltered[$name];
+	}
+
+
+	/**
+	 *
+	 * Get value of requested param converted
+	 * to Utf8String object
+	 *
+	 * @param string $name
+	 * @param mixed $default fallback value in case
+	 * the param $name does not exist if Request
+	 *
+	 * @return object of type Utf8String representing the value
+	 * of requested param
+	 */
+	public function getUTF8($name, $default = null){
+		if(empty($this->aUTF8[$name])){
+			$res = $this->get($name, 's', $default);
+			$ret = Utf8String::factory($res);
+			$this->aUTF8[$name] = $ret;
 		}
 
-		return $ret;
+		return $this->aUTF8[$name];
+	}
+
+
+	/**
+	 * Get object of type GeoipLocation
+	 * for requesting ip address
+	 * This may return stub-like object with
+	 * empty values if ip could be resolved to
+	 * a location but it will always return the object
+	 * GeoipLocation
+	 *
+	 * @return object of type GeoipLocation
+	 */
+	public function getGeoData(){
+		if(!isset($this->oGeo)){
+			$this->oGeo = Geoip::getGeoData(self::getIP);
+		}
+
+		return $this->oGeo;
 	}
 
 
@@ -372,7 +425,7 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 */
 	public static function getRequestMethod(){
 
-		return strtoupper($_SERVER['REQUEST_METHOD']);
+		return (isset($_SERVER) && !empty($_SERVER['REQUEST_METHOD'])) ? \strtoupper($_SERVER['REQUEST_METHOD']) : null;
 	}
 
 
@@ -380,32 +433,33 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * Get value of specific request header
 	 *
 	 * @param string $strHeader
-	 * @return mixed string value of header or false
+	 * @return mixed string value of header or null
 	 * if header not found
 	 */
-	public final static function getHttpHeader($strHeader)
-	{
-		$strKey = 'HTTP_'.strtoupper(str_replace('-', '_', $strHeader));
+	public final static function getHttpHeader($strHeader){
+
+		$strKey = 'HTTP_'.\strtoupper(\str_replace('-', '_', $strHeader));
 		if (!empty($_SERVER[$strKey])) {
 
 			return $_SERVER[$strKey];
 		}
+
 		/**
 		 * Fix case of request header, this way the
 		 * param $strHeader is NOT case sensitive
 		 *
 		 */
+		if (\function_exists('apache_request_headers')) {
+			$strHeader = (\str_replace(" ", "-", (\ucwords(\str_replace("-", " ", \strtolower($strHeader))))));
+			$arrHeaders = \apache_request_headers();
 
-		if (function_exists('apache_request_headers')) {
-			$strHeader = (str_replace(" ", "-", (ucwords(str_replace("-", " ", strtolower($strHeader))))));
-			$arrHeaders = apache_request_headers();
 			if (!empty($arrHeaders[$strHeader])) {
 
 				return $arrHeaders[$strHeader];
 			}
 		}
 
-		return false;
+		return null;
 	}
 
 
@@ -414,9 +468,7 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * @return bool true if request is via Ajax, false otherwise
 	 *
 	 */
-	public static final function isAjax()
-	{
-		d('isAjax? '.print_r($_GET, 1));
+	public static final function isAjax(){
 		if(null !== self::$ajax){
 
 			return self::$ajax;
@@ -426,11 +478,11 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 		(isset($_POST) && !empty($_POST['ajaxid']))){
 			self::$ajax = true;
 			d('ajaxid true');
-			
+
 			return true;
 		}
 
-		self::$ajax = (strtoupper((string)self::getHttpHeader('X-REQUESTED-WITH')) === 'XMLHTTPREQUEST');
+		self::$ajax = (\strtoupper((string)self::getHttpHeader('X-REQUESTED-WITH')) === 'XMLHTTPREQUEST');
 
 		return self::$ajax;
 	}
@@ -454,8 +506,8 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 *
 	 * @return string ip address
 	 */
-	public static function getIP()
-	{
+	public static function getIP(){
+
 		return (isset($_SERVER) && !empty($_SERVER['REMOTE_ADDR'])) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.2';
 	}
 
@@ -466,8 +518,8 @@ class Request extends LampcmsArray implements Interfaces\LampcmsObject
 	 * @return mixed string useragent | null if user agent not present
 	 *
 	 */
-	public static function getUserAgent()
-	{
+	public static function getUserAgent(){
+
 		$sUserAgent = (isset($_SERVER) && isset($_SERVER['HTTP_USER_AGENT'])) ? $_SERVER['HTTP_USER_AGENT'] : null;
 
 		return $sUserAgent;

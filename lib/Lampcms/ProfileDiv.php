@@ -53,43 +53,254 @@
 
 namespace Lampcms;
 
-
+/**
+ *
+ * Class for rendering <div> with user profile
+ * This class is used for generating div on page
+ * /user/$id/
+ *
+ * @author Dmitri Snytkine
+ *
+ */
 class ProfileDiv extends LampcmsObject
 {
 	/**
-	 * Created and returns html for the user profile div
+	 * Flag indicates that oauth extension
+	 * is available
 	 *
-	 * @todo translate string 'ago'
+	 * @var bool
+	 */
+	protected $hasOauth = false;
+
+	
+	/**
 	 *
+	 * User whose profile page being created
+	 * @var object of type User
+	 */
+	protected $oUser;
+
+	
+	/**
+	 * Constructor
+	 * 
 	 * @param Registry $oRegistry
+	 */
+	public function __construct(Registry $oRegistry){
+		$this->oRegistry = $oRegistry;
+		$this->hasOauth = \extension_loaded('oauth');
+	}
+
+	
+	/**
+	 * Setter for $this->oUser
+	 * 
 	 * @param User $oUser
 	 */
-	public static function get(Registry $oRegistry, User $oUser){
+	public function setUser(User $oUser){
+		$this->oUser = $oUser;
 
-		$lastActive = $oUser['i_lm_ts'];
-		$lastActive = (!empty($lastActive)) ? $lastActive : $oUser['i_reg_ts'];
-		$rep = $oUser->getReputation();
+		return $this;
+	}
+
+
+	public function getHtml(){
+		$edit = '';
+		$lastActive = $this->oUser['i_lm_ts'];
+		$lastActive = (!empty($lastActive)) ? $lastActive : $this->oUser['i_reg_ts'];
+		$rep = $this->oUser->getReputation();
 
 		d('rep: '.$rep);
+		$uid = $this->oUser->getUid();
+		$isSameUser = ($this->oRegistry->Viewer->getUid() === $uid);
+		if($isSameUser || $this->oRegistry->Viewer->isModerator()){
+			$edit = '<div class="fl middle"><span class="icoc key">&nbsp;</span><a href="/editprofile/'.$uid.'" class="edit middle">Edit profile</a></div>';
+		}
+
+		$desc = \trim($this->oUser['description']);
+		$desc = (empty($desc)) ? '' : Utf8String::factory($desc, 'utf-8', true)->linkify()->valueOf();
 
 		$vars = array(
-			'username' => $oUser->username,
-			'avatar' => $oUser->getAvatarImgSrc(),
+			'editLink' => $edit,
+			'username' => $this->oUser->username,
+			'avatar' => $this->oUser->getAvatarImgSrc(),
 			'reputation' => $rep,
-			'name' => $oUser->getDisplayName(),
-			'since' => date('F j, Y', $oUser->i_reg_ts),
+			'name' => $this->oUser->getDisplayName(),
+			'genderLabel' => 'Gender',
+			'gender' => $this->getGender(),
+			'since' => date('F j, Y', $this->oUser->i_reg_ts),
 			'lastActivity' => TimeAgo::format(new \DateTime(date('r', $lastActive))),
-			'website' => $oUser->getUrl(),
-			'twitter' => $oUser->getTwitterUrl(),
-			'facebook' => $oUser->getFacebookUrl(),
-			'location' => $oUser->getLocation(),
-			'editRole' => Usertools::getHtml($oRegistry, $oUser),
-			'followButton' => self::makeFollowButton($oRegistry, $oUser),
-			'followers' => ShowFollowers::factory($oRegistry)->getUserFollowers($oUser),
-			'following' => ShowFollowers::factory($oRegistry)->getUserFollowing($oUser)
+			'website' => $this->oUser->getUrl(),
+			'twitter' => '<div id="my_tw">'.$this->getTwitterAccount($isSameUser).'</div>',
+			'age' => $this->oUser->getAge(),
+			'facebook' => '<div id="my_fb">'.$this->getFacebookAccount($isSameUser).'</div>',
+			'tumblr' => '<div id="my_tm">'.$this->getTumblrAccount($isSameUser).'</div>',
+			'blogger' => '<div id="my_tm">'.$this->getBloggerAccount($isSameUser).'</div>',
+			'location' => $this->oUser->getLocation(),
+			'description' => \wordwrap($desc, 50),
+			'editRole' => Usertools::getHtml($this->oRegistry, $this->oUser),
+			'followButton' => $this->makeFollowButton(),
+			'followers' => ShowFollowers::factory($this->oRegistry)->getUserFollowers($this->oUser),
+			'following' => ShowFollowers::factory($this->oRegistry)->getUserFollowing($this->oUser)
 		);
-		
+
 		return \tplUserInfo::parse($vars);
+	}
+
+
+	/**
+	 * Get either the link to @username of Twitter account if user has one
+	 * OR html for the button to connect Twitter account
+	 * to Existing Account
+	 *
+	 *
+	 * @param object $oRegistry
+	 * @param object $oUser
+	 *
+	 * @return string html html of Connect button
+	 * or just plain text string with @username
+	 *
+	 */
+	public function getTwitterAccount($isSameUser){
+
+		$t = $this->oUser->getTwitterUrl();
+		if(!empty($t)){
+			return $t;
+		}
+
+		if($this->hasOauth && $isSameUser){
+			$aTwitter = $this->oRegistry->Ini->getSection('TWITTER');
+			if(!empty($aTwitter['TWITTER_OAUTH_KEY']) && !empty($aTwitter['TWITTER_OAUTH_SECRET'])){
+				return '<div id="connect_twtr" class="twsignin ajax ttt btn_connect rounded4" title="Connect Twitter Account"><img src="/images/tw-user.png" width="16" height="16"><span class="_bg_tw">Connect Twitter</span></div>';
+			}
+		}
+
+		return '';
+	}
+
+	
+	/**
+	 * Get either the link to Tumblr blog
+	 * if user has one
+	 * OR html for the button to connect Tumblr account
+	 * to Existing Account
+	 *
+	 *
+	 * @param object $oRegistry
+	 * @param object $oUser
+	 *
+	 * @return string html of Connect button
+	 * or link to user's Tumblr blog
+	 *
+	 */
+	public function getTumblrAccount($isSameUser){
+
+		$t = $this->oUser->getTumblrBlogLink();
+		d('tumblr blog url: '.$t);
+		if(!empty($t)){
+			return $t;
+		}
+
+		if($this->hasOauth && $isSameUser){
+			$a = $this->oRegistry->Ini->getSection('TUMBLR');
+			if(!empty($a) && !empty($a['OAUTH_KEY']) && !empty($a['OAUTH_SECRET'])){
+				return '<div id="connect_tumblr" class="add_tumblr ajax ttt btn_connect rounded4" title="Connect Tumblr Blog"><img src="/images/tumblr_16.png" width="16" height="16"><span class="_bg_tw">Connect Tumblr Blog</span></div>';
+			}
+		}
+
+		return '';
+	}
+
+
+	/**
+	 * Get either the link to Tumblr blog
+	 * if user has one
+	 * OR html for the button to connect Tumblr account
+	 * to Existing Account
+	 *
+	 *
+	 * @param object $oRegistry
+	 * @param object $oUser
+	 *
+	 * @return string html of Connect button
+	 * or link to user's Tumblr blog
+	 *
+	 */
+	public function getBloggerAccount($isSameUser){
+
+		$t = $this->oUser->getBloggerBlogLink();
+		d('blojgger blog url: '.$t);
+		if(!empty($t)){
+			return $t;
+		}
+
+		if($this->hasOauth && $isSameUser){
+			$a = $this->oRegistry->Ini->getSection('BLOGGER');
+			if(!empty($a) && !empty($a['OAUTH_KEY']) && !empty($a['OAUTH_SECRET'])){
+				return '<div id="connect_blogger" class="add_blogger ajax ttt btn_connect rounded4" title="Connect Blogger.com Blog"><img src="/images/blogger_16.png" width="16" height="16"><span class="_bg_tw">Connect Blogger Blog</span></div>';
+			}
+		}
+
+		return '';
+	}
+
+
+	/**
+	 * Get either the link to Facebook profile
+	 * if user has one
+	 * OR html for the button to connect Facebook account
+	 * to Existing Account
+	 *
+	 *
+	 * @param object $oRegistry
+	 * @param object $oUser
+	 *
+	 * @return string html of Connect button
+	 * or link to Facebook profile page
+	 *
+	 */
+	public function getFacebookAccount($isSameUser){
+
+		$f = $this->oUser->getFacebookUrl();
+		if(!empty($f)){
+			return $f;
+		}
+
+		if($this->hasOauth && $isSameUser){
+			$aFB = $this->oRegistry->Ini->getSection('FACEBOOK');
+			if(!empty($aFB) && !empty($aFB['APP_ID'])){
+
+				return '<div id="connect_fb" class="fbsignup ajax ttt btn_connect rounded4" title="Connect Facebook Account"><img src="/images/facebook_16.png" width="16" height="16"><span class="_bg_tw">Connect Facebook</span></div>';
+			}
+		}
+
+		return '';
+	}
+
+
+	/**
+	 * Get textual value of "Gender" M/F
+	 *
+	 * @todo translate string Male/Female
+	 * @param string $gender
+	 * @return string
+	 */
+	protected function getGender(){
+		$gender = $this->oUser['gender'];
+		switch($gender){
+			case 'M':
+				$ret = 'Male';
+				break;
+
+			case 'F':
+				$ret = 'Female';
+				break;
+
+			default:
+				$ret = '';
+		}
+
+		return $ret;
 	}
 
 
@@ -106,11 +317,11 @@ class ProfileDiv extends LampcmsObject
 	 * of empty string if Viewer is same as User
 	 *
 	 */
-	public static function makeFollowButton(Registry $oRegistry, User $oUser){
+	public function makeFollowButton(){
 
 		$button = '';
-		$oViewer = $oRegistry->Viewer;
-		$uid = $oUser->getUid();
+		$oViewer = $this->oRegistry->Viewer;
+		$uid = $this->oUser->getUid();
 
 		if($uid !== $oViewer->getUid()){
 
@@ -131,15 +342,9 @@ class ProfileDiv extends LampcmsObject
 			}
 
 			$button = '<div class="fl mt10 mb10"><div class="follow_wrap">'.\tplFollowButton::parse($aVars, false).'</div></div>';
-
 		}
 
 		return $button;
 	}
 
-	/*
-
-	public function getShredButton(Registry $oRegistry, User $oUser){
-
-	}*/
 }

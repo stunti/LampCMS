@@ -279,28 +279,27 @@ class Captcha extends LampcmsObject
 		$aConfig = $oRegistry->Ini->getSection('CAPTCHA');
 
 		if(!empty($aConfig['disabled'])){
-			d('Captcha disabled by administrator');
-			
+			d('Captcha disabled by administrator. Using CaptchaStub instead');
+
 			return new CaptchaStub();
 		}
 
 		try{
 			self::checkGD();
-			return new self($oRegistry, $aConfig);			
+			return new self($oRegistry, $aConfig);
 		} catch (DevException $e){
 			e('Unable to use Captcha because of this error: '.$e->getMessage());
-			
+
 			return new CaptchaStub();
 		}
 	}
 
-	
+
 	/**
 	 * Extracts the config array and generate needed params.
 	 *
 	 **/
-	public function __construct(Registry $oRegistry, array $config = array(), $secure=true, $debug=false )
-	{
+	public function __construct(Registry $oRegistry, array $config = array(), $secure=true, $debug=false ){
 
 		$this->oRegistry = $oRegistry;
 
@@ -425,8 +424,7 @@ class Captcha extends LampcmsObject
 	 * @return 0 = first call | 1 = valid submit | 2 = not valid | 3 = not valid and has reached maximum try's
 	 *
 	 **/
-	public function validate_submit()
-	{
+	public function validate_submit(){
 
 		$chk = $this->check_captcha($this->public_K, $this->private_K);
 
@@ -449,8 +447,7 @@ class Captcha extends LampcmsObject
 
 
 
-	public function display_captcha()
-	{
+	public function display_captcha(){
 		$this->make_captcha();
 		$is = getimagesize($this->get_filename());
 
@@ -459,9 +456,10 @@ class Captcha extends LampcmsObject
 	}
 
 
-	/** must be public to work on our project **/
-	public function make_captcha()
-	{
+	/**
+	 *  must be public to work on our project
+	 */
+	public function make_captcha(){
 		$private_key = $this->generate_private();
 		d("Captcha-Debug: Generate private key: ($private_key)");
 
@@ -561,11 +559,12 @@ class Captcha extends LampcmsObject
 		d('$image: '.gettype($image). ' image file: '.$this->get_filename().' $this->jpegquality: '.$this->jpegquality);
 		if(true !== imagejpeg($image, $this->get_filename(), $this->jpegquality)){
 			e('error writing captcha image');
+			throw new DevException('Unable to save captcha-image to '.$this->get_filename());
 		}
 
 		if(!file_exists($this->get_filename())){
 			e('Captcha-Debug unable to save captcha file to '.$this->get_filename());
-			throw new DevException('Unable to save captcha-image.');
+			throw new DevException('Unable to save captcha-image to '.$this->get_filename());
 		}
 
 		d('Captcha-Debug');
@@ -575,9 +574,13 @@ class Captcha extends LampcmsObject
 		d('Captcha-Debug');
 	}
 
-	/** @private **/
-	protected function makeWebsafeColors(&$image)
-	{
+
+	/**
+	 *
+	 * Enter description here ...
+	 * @param unknown_type $image
+	 */
+	protected function makeWebsafeColors(&$image){
 		//$a = array();
 		for($r = 0; $r <= 255; $r += 51){
 			for($g = 0; $g <= 255; $g += 51){
@@ -586,13 +589,19 @@ class Captcha extends LampcmsObject
 				}
 			}
 		}
+
 		d("Captcha-Debug: Allocate 216 websafe colors to image: (".imagecolorstotal($image).")");
 		//return $a;
 	}
 
-	/** @private **/
-	protected function random_color($min,$max)
-	{
+
+	/**
+	 *
+	 * Enter description here ...
+	 * @param int $min
+	 * @param int $max
+	 */
+	protected function random_color($min,$max){
 		srand((double)microtime() * 1000000);
 		$this->r = intval(rand($min,$max));
 		srand((double)microtime() * 1000000);
@@ -602,9 +611,12 @@ class Captcha extends LampcmsObject
 
 	}
 
-	/** @private **/
-	function change_TTF()
-	{
+
+	/**
+	 *
+	 * Enter description here ...
+	 */
+	protected function change_TTF(){
 		if(is_array($this->TTF_RANGE)){
 			srand((float)microtime() * 10000000);
 			$key = array_rand($this->TTF_RANGE);
@@ -616,6 +628,7 @@ class Captcha extends LampcmsObject
 		return $this->TTF_file;
 	}
 
+
 	/**
 	 * Check captcha
 	 *
@@ -624,8 +637,7 @@ class Captcha extends LampcmsObject
 	 *
 	 * @return bool
 	 */
-	protected function check_captcha($public, $private)
-	{
+	protected function check_captcha($public, $private){
 		$res = false;
 		/**
 		 * when check, destroy picture on disk
@@ -652,9 +664,9 @@ class Captcha extends LampcmsObject
 
 	/**
 	 * must be public for Lampcms project
+	 *
 	 */
-	public function get_filename($public="")
-	{
+	public function get_filename($public=""){
 		if($public==""){
 			$public = $this->public_key;
 		}
@@ -662,9 +674,13 @@ class Captcha extends LampcmsObject
 		return $this->tempfolder.$public.".jpg";
 	}
 
-	/** @access public **/
-	public function get_filename_url($public="")
-	{
+
+	/**
+	 *
+	 *
+	 * @param string $public
+	 */
+	public function get_filename_url($public=""){
 		if($public==""){
 			$public = $this->public_key;
 		}
@@ -679,8 +695,7 @@ class Captcha extends LampcmsObject
 	 * 'w' = width, 'h' = height
 	 */
 
-	public function getCaptchaImage()
-	{
+	public function getCaptchaImage(){
 		$this->make_captcha();
 		$is = getimagesize($this->tempfolder.$this->public_key.'.jpg');
 
@@ -689,9 +704,12 @@ class Captcha extends LampcmsObject
         'h' => $is[1]);
 	}
 
-	/** must be public to work on Lampcms project **/
-	public function get_try($in = true)
-	{
+
+	/**
+	 * must be public to work on Lampcms project
+	 *
+	 */
+	public function get_try($in = true){
 		$s = array();
 		for($i = 1; $i <= $this->maxtry; $i++){
 			$s[$i] = $i;
@@ -715,13 +733,17 @@ class Captcha extends LampcmsObject
 		}
 	}
 
+
 	/**
-	 * get version of php GD extension
+	 * Get version of php GD extension
 	 *
-	 * @return unknown
+	 * @return version of GD
+	 *
+	 * @throws \Lampcms\DevException if GD not available
+	 * or not compiled with imatettftext support
+	 * or does not have JPEG support
 	 */
-	public static function checkGD()
-	{
+	public static function checkGD(){
 		if(!extension_loaded('gd')){
 			throw new DevException('GD module not loaded. Cannot use Captcha class without GD library. Check your php info');
 		}
@@ -731,14 +753,27 @@ class Captcha extends LampcmsObject
 		}
 
 		$gd_info = gd_info();
-		$gdv = $gd_info['GD Version'];
-		if(preg_match("/([0-9\.]+)(\s)/i", $gdv, $matches)){
-
-			return $matches[1];
+		
+		if(empty($gd_info['JPG Support']) && empty($gd_info['JPEG Support'])){
+			throw new DevException('Your php GD version does not have support for JPG image. Captcha cannot be used without JPG support in GD');
 		}
 
-		throw new DevException('Your php does not have the GD Library. The Captcha Class cannot be used without it');
+		if(empty($gd_info['GD Version'])){
+			throw new DevException('Unknown version of GD. Unable to use Captcha');
+		}
+
+		$gdv = $gd_info['GD Version'];
+		d('$gdv: '.$gdv);
+		$Version = preg_replace('/[[:alpha:][:space:]()]+/', '', $gdv);
+		d('Version: '.$Version);
+
+		if(version_compare($Version, 2.0) < 0){
+			throw new DevException('GD version must be newer than 2.0. Your installed version is: '.$Version.' Captcha will not be used');
+		}
+
+		return $Version;
 	}
+
 
 	/**
 	 *
@@ -746,8 +781,7 @@ class Captcha extends LampcmsObject
 	 * for the actual image of captcha
 	 * @param string $public
 	 */
-	protected function generate_private($public="")
-	{
+	protected function generate_private($public=""){
 		if($public=="") {
 			$public = $this->public_key;
 		}
@@ -777,6 +811,7 @@ class Captcha extends LampcmsObject
 		return $this->public_key;
 	}
 
+
 	/**
 	 * Returns array of values that we need for
 	 * the Captcha form.
@@ -785,15 +820,13 @@ class Captcha extends LampcmsObject
 	 * 'public_key' value of public key,
 	 * 'hncaptcha' value of hncaptcha
 	 */
-	public function getCaptchaArray()
-	{
+	public function getCaptchaArray(){
 		$aRet = array(
 		'img' => $this->display_captcha(),
 		'public_key' => $this->getPublicKey(),
 		'hncaptcha' => $this->get_try(false));
 
 		return $aRet;
-
 	}
 
 

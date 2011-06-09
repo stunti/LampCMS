@@ -49,7 +49,7 @@
  *
  */
 
- 
+
 namespace Lampcms;
 
 
@@ -73,13 +73,16 @@ class Log
 	 */
 	const LOG_FILE_PATH = '';
 
+
 	const DEVELOPER_EMAIL = '';
+
 
 	/**
 	 * Format of timestamp
 	 * @var string
 	 */
 	const TIME_FORMAT = "F j, Y H:i:s";
+
 
 	/**
 	 * String to be used as a subject line
@@ -88,6 +91,7 @@ class Log
 	 * @var string
 	 */
 	const EMAIL_SUBJECT = 'Error on your website';
+
 
 	/**
 	 * Our main logging function
@@ -101,11 +105,11 @@ class Log
 	 *
 	 * @return string message that was just logged
 	 */
-	public static function l($message, $traceLevel = 0)
-	{
+	public static function l($message, $traceLevel = 0){
 		$logPath = self::getLogPath();
 
 		if(empty($logPath)){
+			
 			return;
 		}
 
@@ -178,11 +182,12 @@ class Log
 
 		$sMessage = PHP_EOL.self::getTimeStamp().$string;
 
-		$ret = file_put_contents($logPath, $sMessage, FILE_APPEND | LOCK_EX);
-
+		$ret = \file_put_contents($logPath, $sMessage, FILE_APPEND | LOCK_EX);
+		
 		return $sMessage;
 
 	}
+
 
 	/**
 	 * Log debug message. The debug messages
@@ -193,18 +198,17 @@ class Log
 	 *
 	 * @param string $message message to log
 	 */
-	public static function d($message, $level = 1)
-	{
-		if(true === LAMPCMS_DEBUG){
+	public static function d($message, $level = 1){
 
-			/**
-			 * Increase backtrace level to one
-			 * to account to delegating from this
-			 * method to log() method
-			 */
-			return self::l($message, $level);
-		}
+		/**
+		 * Increase backtrace level to one
+		 * to account to delegating from this
+		 * method to log() method
+		 */
+		return self::l($message, $level);
+
 	}
+
 
 	/**
 	 * Log error message. The main difference
@@ -213,8 +217,7 @@ class Log
 	 *
 	 * @param string $message message to log
 	 */
-	public static function e($message, $level = 1)
-	{
+	public static function e($message, $level = 1){
 		/**
 		 * Increase backtrace level to one
 		 * to account to delegating from this
@@ -227,6 +230,7 @@ class Log
 		return $message;
 	}
 
+
 	/**
 	 * Get path to log file
 	 * If global constant LOG_FILE_PATH is defined
@@ -236,8 +240,7 @@ class Log
 	 * @return string a path to log file
 	 *
 	 */
-	protected static function getLogPath()
-	{
+	protected static function getLogPath(){
 		if(defined('SPECIAL_LOG_FILE')){
 			return SPECIAL_LOG_FILE;
 		}
@@ -250,8 +253,7 @@ class Log
 	 * Sends email message to developer
 	 * if message contains error pattern
 	 */
-	protected static function notifyDeveloper($message)
-	{
+	protected static function notifyDeveloper($message){
 		$devEmail = self::getDevEmail();
 
 		if (empty($devEmail)) {
@@ -292,6 +294,7 @@ class Log
 		return;
 	}
 
+
 	/**
 	 * Get value from global $_SERVER array
 	 * if it exists, otherwise return just an empty string
@@ -300,10 +303,10 @@ class Log
 	 *
 	 * @return string value of $var or empty string
 	 */
-	protected static function getServerVar($var)
-	{
+	protected static function getServerVar($var){
 		return (array_key_exists($var, $_SERVER)) ? $_SERVER[$var] : '';
 	}
+
 
 	/**
 	 * Get string representation of
@@ -311,10 +314,10 @@ class Log
 	 *
 	 * @return string a formatted timestamp
 	 */
-	protected static function getTimeStamp()
-	{
+	protected static function getTimeStamp(){
 		return date(self::TIME_FORMAT).' ';
 	}
+
 
 	/**
 	 * Get email address of developer
@@ -325,8 +328,7 @@ class Log
 	 *
 	 * @return string email address of developer
 	 */
-	protected static function getDevEmail()
-	{
+	protected static function getDevEmail(){
 		return defined('DEVELOPER_EMAIL') ? DEVELOPER_EMAIL : self::DEVELOPER_EMAIL;
 	}
 

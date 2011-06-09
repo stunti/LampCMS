@@ -50,6 +50,7 @@
  */
 
 
+
 namespace Lampcms\Forms;
 
 use Lampcms\Request;
@@ -81,6 +82,7 @@ class Form extends LampcmsObject
 	 */
 	protected $useToken = true;
 
+
 	/**
 	 * Array of field names used in current form
 	 * This should be set in sub-class that represents
@@ -102,6 +104,7 @@ class Form extends LampcmsObject
 	 */
 	protected $aFields = array();
 
+
 	/**
 	 * Array of validator callback functions
 	 * keys are field names, values are anonymous functions
@@ -111,25 +114,27 @@ class Form extends LampcmsObject
 	 */
 	protected $aValidators = array();
 
+
 	/**
 	 * Name of form template file
 	 * The name of actual template should be
 	 * set in sub-class
-	 * 
+	 *
 	 * Templates must have these placeholders:
-	 * filedName, fieldName_e for setting 
+	 * filedName, fieldName_e for setting
 	 * error specific to form field
-	 * 
+	 *
 	 * and also 'formError'
 	 * with corresponding html in template: <div class="form_error">%%</div>
 	 * for setting form error
-	 * via javascript %% should correspond to 'formError' 
+	 * via javascript %% should correspond to 'formError'
 	 * position in vars array, for example %19$s
-	 * 
+	 *
 	 *
 	 * @var string
 	 */
 	protected $template;
+
 
 	/**
 	 * Array of template vars
@@ -146,6 +151,7 @@ class Form extends LampcmsObject
 	 */
 	protected $aVars;
 
+
 	/**
 	 * Flag indicates that form has been
 	 * submitted via POST
@@ -153,6 +159,17 @@ class Form extends LampcmsObject
 	 * @var bool
 	 */
 	protected $bSubmitted = false;
+
+
+	/**
+	 * Array of uploaded files
+	 * Basically a copy of $_FILES array that php
+	 * provides
+	 *
+	 * @var array
+	 */
+	protected $aUploads = array();
+
 
 	/**
 	 * Array of form field errors
@@ -168,6 +185,7 @@ class Form extends LampcmsObject
 	 */
 	protected $aErrors = array();
 
+
 	public function __construct(Registry $oRegistry, $useToken = true){
 		$this->oRegistry = $oRegistry;
 		$this->useToken = $useToken;
@@ -182,6 +200,8 @@ class Form extends LampcmsObject
 			if(true === $useToken){
 				self::validateToken($oRegistry);
 			}
+			$this->aUploads = $_FILES;
+			d('$this->aUploads: '.print_r($this->aUploads, 1));
 		} else {
 			$this->addToken();
 		}
@@ -229,6 +249,7 @@ class Form extends LampcmsObject
 		$this->aValidators[$field] = $func;
 	}
 
+
 	/**
 	 * Run custom validators
 	 * Validators can be added via addValidator() method
@@ -262,6 +283,7 @@ class Form extends LampcmsObject
 		return $this->isValid();
 	}
 
+
 	/**
 	 * Method that invokes form
 	 * validation
@@ -270,6 +292,7 @@ class Form extends LampcmsObject
 	 * to do custom validation
 	 */
 	protected function doValidate(){}
+
 
 	/**
 	 * Get values of submitted form fields
@@ -282,13 +305,13 @@ class Form extends LampcmsObject
 	public function getSubmittedValues(){
 		$aFields = $this->getFields();
 		$a = $this->oRegistry->Request->getArray();
-		d('$aFields: '.print_r($aFields, 1).' $a: '.print_r($a, 1));
+		//d('$aFields: '.print_r($aFields, 1).' Request->getArray(): '.print_r($a, 1).' POST: '.print_r($_POST, 1));
 
 		/**
 		 * Order of array_intersect_key is very important!
 		 */
 		$ret = array_intersect_key($a, array_flip($aFields));
-		d('submitted values: '.print_r($ret, 1));
+		//d('submitted values: '.print_r($ret, 1));
 
 		return $ret;
 	}
@@ -308,6 +331,93 @@ class Form extends LampcmsObject
 		}
 
 		return $this->oRegistry->Request[$field];
+	}
+
+
+	/**
+	 * Get path to uploaded file
+	 * The file is first copied to tmp directory
+	 *
+	 * @param string $field
+	 * @throws \Lampcms\DevException if move_uploaded_file operation
+	 * fails
+	 *
+	 * @return mixed null | false | string full path to new temporary location
+	 * of the uploaded file null if there is no uploaded file with this
+	 * element name of false if there was a problem with upload
+	 */
+	public function getUploadedFile($field){
+		d('looking for uploaded file: '.$field);
+		if(!$this->fieldExists($field)){
+			throw new \Lampcms\DevException('field '.$field.' does not exist');
+		}
+
+		if(!array_key_exists($field, $this->aUploads)){
+			d('no such file in uploads: '.$field);
+				
+			return null;
+		}
+
+		if( !is_array($this->aUploads[$field]) || (0 == $this->aUploads[$field]['size']) || empty($this->aUploads[$field]['tmp_name']) || ('none' == $this->aUploads[$field]['tmp_name']) ){
+			d('file '.$field.' was not uploaded');
+
+			return null;
+		}
+
+		/**
+		 * If upload was made but there was an error...
+		 * if 'error' code then
+		 * set element error? throw exception?
+		 * what to return?
+		 * element Error vs Form Error?
+		 * element for file upload input may be hidden by css style
+		 * like in case of avatar upload it is hidden initially
+		 * so it's better to set form error!
+		 *
+		 */
+		if(UPLOAD_ERR_OK !== $errCode = $this->aUploads[$field]['error']){
+			e('Upload of file '.$field. ' failed with error '.$this->aUploads[$field]['error']);
+			if(UPLOAD_ERR_FORM_SIZE === $errCode){
+				e('Uploaded file exceeds maximum allowed size');
+			} elseif(UPLOAD_ERR_INI_SIZE === $errCode){
+				e('Uploaded file exceeds maximum upload size');
+			}
+
+			return false;
+		}
+
+		$temp_file = \tempnam(\sys_get_temp_dir(), 'uploaded');
+		d('$temp_file: '.$temp_file);
+
+		if(false === \move_uploaded_file($this->aUploads[$field]['tmp_name'], $temp_file) ){
+			d('no go with move_uploaded_file to '.$temp_file.' $this->aUploads: '.print_r($this->aUploads, 1));
+			throw new \Lampcms\DevException('Unable to copy uploaded file');
+		}
+
+		d('new file path: '.$temp_file);
+
+		return $temp_file;
+
+	}
+
+
+	/**
+	 * Getter for $this->aUploads
+	 *
+	 * @return array raw array of $this->aUploads which is
+	 * the copy of the $_FILES Array
+	 */
+	public function getUploadedFiles(){
+		return $this->aUploads;
+	}
+
+	/**
+	 * Check if form had any uploaded files
+	 *
+	 * @return bool true if there are any uploaded files
+	 */
+	public function hasUploads(){
+		return (count($this->aUploads) > 0);
 	}
 
 
@@ -451,13 +561,25 @@ class Form extends LampcmsObject
 	/**
 	 * Parse form template using vars/values we set
 	 * also if aErrors not empty, merge it with aVars
+	 * 
+	 * @param bool $useSubmittedVars if set to false then
+	 * will not update $this-aVars to the values of submitted
+	 * values and will reuse the vars that were set initially.
+	 * This is useful when form was submitted but then some error
+	 * occured in a script that was parsing the form. In that case
+	 * we ofter need to setFormError and then use values in form
+	 * than were there initially, no using any of the submitted values.
 	 *
 	 * @return string html parsed form template
 	 */
-	public function getForm(){
-		d('cp');
-
-		$this->prepareVars()->addErrors();
+	public function getForm($useSubmittedVars = true){
+		d('$this->aVars: '.print_r($this->aVars, 1));
+		
+		if($useSubmittedVars){
+			$this->prepareVars();
+		}
+		
+		$this->addErrors();
 		$tpl = $this->template;
 
 		/**
@@ -486,6 +608,8 @@ class Form extends LampcmsObject
 		if($this->bSubmitted){
 			$a = $this->oRegistry->Request->getArray();
 			d('a from request: '.print_r($a, 1));
+			d('$this->aVars : '.print_r($this->aVars, 1));
+
 			$this->aVars = array_merge($this->aVars, $a);
 		}
 
@@ -554,20 +678,11 @@ class Form extends LampcmsObject
 	 * it will be used by ajax based forms when submitting
 	 * form via ajax
 	 *
-	 * The form token is tied to current session but
-	 * does not use sessionID and it is also tied to
-	 * the concrete form because each concrete form
-	 * has different class name
-	 *
-	 * @IMPORTANT the token is now NOT global, it cannot
-	 * be used as value of some meta tag because it will be different
-	 * for different forms.
 	 *
 	 * @return string value of form token
 	 * for this class.
 	 */
-	public static function generateToken()
-	{
+	public static function generateToken(){
 		if (!array_key_exists('secret', $_SESSION)) {
 
 			$token = uniqid(mt_rand());
@@ -598,10 +713,10 @@ class Form extends LampcmsObject
 	 * Validate submitted 'token' value
 	 * agains generateToken()
 	 * they must match OR throw TokenException
-	 * 
+	 *
 	 * Must be static because we use this sometimes
 	 * from outside this object.
-	 * 
+	 *
 	 * @return true on success
 	 *
 	 */

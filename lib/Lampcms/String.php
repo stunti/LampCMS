@@ -96,15 +96,14 @@ class String extends LampcmsObject implements \Serializable
 	 * @param string $string
 	 * @param string $returnMode if set to StringBuilder will set the StringBuilder return mode
 	 */
-	public function __construct($string, $returnMode = 'default')
-	{
-		if(!is_string($string) && !is_int($string) && !is_object($string)){
+	public function __construct($string, $returnMode = 'default'){
+		if(!\is_string($string) && !\is_int($string) && !\is_object($string)){
 			$err = '$string must be a string of int. Was: '.gettype($string);
 			e($err);
 			throw new \InvalidArgumentException($err);
 		}
 
-		if(is_object($string)){
+		if(\is_object($string)){
 
 			if(!($string instanceof \Lampcms\String)){
 				$err = '$string must be instance of \Lampcms\String class';
@@ -134,8 +133,7 @@ class String extends LampcmsObject implements \Serializable
 	 * @param $mode
 	 * @return object $this
 	 */
-	public function setReturnMode($mode)
-	{
+	public function setReturnMode($mode){
 		if(!is_string($mode)){
 			throw new InvalidArgumentException('$mode must be a string');
 		}
@@ -150,8 +148,7 @@ class String extends LampcmsObject implements \Serializable
 	 *
 	 * @return string
 	 */
-	public function getReturnMode()
-	{
+	public function getReturnMode(){
 		return $this->returnMode;
 	}
 
@@ -170,21 +167,38 @@ class String extends LampcmsObject implements \Serializable
 		return $o;
 	}
 
-	public function __clone()
-	{
+
+	/**
+	 * @todo unfinished
+	 *
+	 */
+	public function __clone(){
 
 	}
 
 
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsObject::__toString()
+	 */
 	public function __toString(){
 		return $this->string;
 	}
 
+
+	/**
+	 *
+	 * @return string value of $this->string
+	 */
 	public function valueOf(){
 		return $this->string;
 	}
 
 
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsObject::hashCode()
+	 */
 	public function hashCode(){
 		return $this->getMd5();
 	}
@@ -198,19 +212,27 @@ class String extends LampcmsObject implements \Serializable
 	 */
 	public function isHtml(){
 
-		return (strlen(strip_tags($this->string)) !== strlen($this->string));
+		return (\strlen(\strip_tags($this->string)) !== \strlen($this->string));
 	}
 
 
+	/**
+	 * (non-PHPdoc)
+	 * @see Serializable::serialize()
+	 */
 	public function serialize(){
-		return serialize(array('s' => $this->string, 'm' => $this->returnMode));
+		return \serialize(array('s' => $this->string, 'm' => $this->returnMode));
 	}
 
 
+	/**
+	 * (non-PHPdoc)
+	 * @see Serializable::unserialize()
+	 */
 	public function unserialize($serialized){
-		$a = unserialize($serialized);
+		$a = \unserialize($serialized);
 		$this->string = $a['s'];
-		$this->returnMode = $a['r'];
+		$this->returnMode = $a['m'];
 	}
 
 
@@ -223,7 +245,7 @@ class String extends LampcmsObject implements \Serializable
 	 */
 	public function getLinesCount(){
 
-		$a = explode("\n", trim($this->string, "\n"));
+		$a = \explode("\n", trim($this->string, "\n"));
 
 		return count($a);
 	}
@@ -237,7 +259,7 @@ class String extends LampcmsObject implements \Serializable
 	 */
 	public function getWordsCount(){
 
-		return str_word_count($this->string, 0, '0123456789-');
+		return \str_word_count($this->string, 0, '0123456789-');
 	}
 
 
@@ -252,8 +274,9 @@ class String extends LampcmsObject implements \Serializable
 	 */
 	public function getSentencesCount(){
 
-		return preg_match_all('/(?:[\w])([\.!?])(?!\w)/m', $this->string, $match);
+		return \preg_match_all('/(?:[\w])([\.!?])(?!\w)/m', $this->string, $match);
 	}
+
 
 	/**
 	 * Get string length in bytes
@@ -268,17 +291,25 @@ class String extends LampcmsObject implements \Serializable
 	 */
 	public function length(){
 
-		return strlen($this->string);
+		return \strlen($this->string);
 	}
 
 
+	/**
+	 *
+	 * @return md5 hash of $this->string
+	 */
 	public function getMd5(){
-		return md5($this->string);
+		return \md5($this->string);
 	}
 
 
+	/**
+	 *
+	 * @return crc32 value of this string
+	 */
 	public function getCrc32(){
-		return crc32($this->string);
+		return \crc32($this->string);
 	}
 
 
@@ -290,7 +321,7 @@ class String extends LampcmsObject implements \Serializable
 	 * @param object of this type
 	 */
 	public function obfuscateEmail(){
-		$str = preg_replace('/([a-zA-Z0-9_\.]{2,})(@)/Ume', "substr('\\1', 0, rand((floor(strlen('\\1') / 2)), (floor(strlen('\\1') / 2) + 1))).'### @'", $this->string);
+		$str = \preg_replace('/([a-zA-Z0-9_\.]{2,})(@)/Ume', "substr('\\1', 0, rand((floor(strlen('\\1') / 2)), (floor(strlen('\\1') / 2) + 1))).'### @'", $this->string);
 
 		return $this->handleReturn($str);
 	}
@@ -308,15 +339,26 @@ class String extends LampcmsObject implements \Serializable
 			return $this->handleReturn($this->string);
 		}
 
-		//$text = preg_replace('/</', ' <', $this->string);
-		$text = str_replace('<', ' <', $this->string);
-		//$text = preg_replace('/>/', '> ', $text);
-		$text = strip_tags($text);
-		$text = preg_replace('/[\n\r\t]/', ' ', $text);
-		$text = preg_replace('!\s+!', ' ', $text);
+		/**
+		 * Remove all the < brackets with space
+		 * so that when tags are stripped we will
+		 * not lose any spaces
+		 */
+		$text = \str_replace('<', ' <', $this->string);
+		$text = \strip_tags($text);
+		$text = \preg_replace('/[\n\r\t]+/', ' ', $text);
+		$text = \preg_replace('!\s+!', ' ', $text);
 
-		return $this->handleReturn(trim($text));
+		return $this->handleReturn(\trim($text));
+	}
+	
+	
 
+
+	public function stripTags(array $aAllowed = null){
+		$ret = \strip_tags($this->string, $aAllowed);
+
+		return $this->handleReturn($ret);
 	}
 
 
@@ -333,12 +375,12 @@ class String extends LampcmsObject implements \Serializable
 
 		$strAlphanum = 'abcdefghijklmnopqrstuvwqyz0123456789';
 		$len = (int)$len;
-		$aAlphanum = str_split($strAlphanum);
+		$aAlphanum = \str_split($strAlphanum);
 		$strRes = '';
 		for ($i = 0; $i < $len; $i += 1) {
-			$key = mt_rand(0, 35);
+			$key = \mt_rand(0, 35);
 			$char = $aAlphanum[$key];
-			$strRes .= (1 === mt_rand(0, 1) && !is_numeric($char)) ? strtoupper($char) : $char;
+			$strRes .= (1 === \mt_rand(0, 1) && !\is_numeric($char)) ? \strtoupper($char) : $char;
 		}
 
 		return $strRes;
@@ -365,8 +407,8 @@ class String extends LampcmsObject implements \Serializable
 	 *
 	 */
 	public static function makeSid($len = 48){
-		$prefix = microtime(true).'a';
-		$rs = self::makeRandomString($len - strlen($prefix));
+		$prefix = \microtime(true).'a';
+		$rs = self::makeRandomString($len - \strlen($prefix));
 
 		return $prefix.$rs;
 	}
@@ -379,8 +421,9 @@ class String extends LampcmsObject implements \Serializable
 	 * @return string md5 hash of VERSION + $pwd
 	 */
 	public static function hashPassword($pwd){
-
-		return hash('sha256', LAMPCMS_SALT.$pwd);
+		$salt = LAMPCMS_SALT;
+		
+		return \hash('sha256', $salt.$pwd);
 	}
 
 
@@ -398,9 +441,8 @@ class String extends LampcmsObject implements \Serializable
 	 * of length between $minLen and $maxLen
 	 *
 	 */
-	public static function makePasswd($minLen = 6, $maxLen = 8)
-	{
-		$len = mt_rand($minLen, $maxLen);
+	public static function makePasswd($minLen = 6, $maxLen = 8){
+		$len = \mt_rand($minLen, $maxLen);
 		d('len: '.$len);
 		$pwd = self::makeRandomString($len);
 
@@ -412,8 +454,8 @@ class String extends LampcmsObject implements \Serializable
 		 * the validator during login process,
 		 * which requires the password to have at least one digit
 		 */
-		if (0 === preg_match('/\d/', $pwd)) {
-			$digit = mt_rand(0, 9);
+		if (0 === \preg_match('/\d/', $pwd)) {
+			$digit = \mt_rand(0, 9);
 			$pwd .= $digit;
 
 			/**
@@ -425,9 +467,8 @@ class String extends LampcmsObject implements \Serializable
 			 * But only if it exceeded $maxLen
 			 */
 			if(strlen($pwd) > $maxLen){
-				$pwd = substr($pwd, 1);
+				$pwd = \substr($pwd, 1);
 			}
-
 		}
 
 		return $pwd;
@@ -466,10 +507,7 @@ class String extends LampcmsObject implements \Serializable
 	protected function handleReturn($string){
 
 		if('StringBuilder' !== $this->returnMode){
-
-			$class = get_class($this);
-			$o = new $class($string, $this->returnMode);
-
+			$o = new static($string, $this->returnMode);
 			return $o;
 		}
 
@@ -480,67 +518,23 @@ class String extends LampcmsObject implements \Serializable
 
 
 	/**
-	 * Parse string and replace all text that
-	 * looks like links with actual clickable links
-	 *
-	 * @param $maxurl_len
-	 * @param bool $addNofollow if true (default), then also add rel="nofollow" to the link
-	 * @param string $target
-	 * @return object of this class
-	 */
-	public function makeClickable($maxurl_len = 60, $addNofollow = true, $target = '_blank')
-	{
-		$text = $this->string;
-		d('before make clickable: '.$text);
-		/**
-		 * Do NOT match urls that may already be
-		 * the value of src or href inside the a or img tag
-		 * For simplicity we we match ONLY strings thank look like
-		 * url and DO NOT have " or ' before it.
-		 *
-		 */
-		if (preg_match_all('/((?<!\"|\')(ht|f)tps?:\/\/([\w\.]+\.)?[\w\-?&=;%#+]+(\.[a-zA-Z]{2,6})?[^\s\r\n\(\)"\'<>\,\!]+)/si', $text, $urls))
-		{
-			$offset1 = ceil(0.65 * $maxurl_len) - 2;
-			$offset2 = ceil(0.30 * $maxurl_len) - 1;
-
-			$nofollow = (true === $addNofollow) ? 'rel="nofollow"' : '';
-			$aUrls = (array_unique($urls[1]));
-			d('aUrls: '.print_r($aUrls, 1));
-
-			foreach ($aUrls as $url){
-				$decoded = urldecode($url);
-				d('decoded: '.$decoded);
-				if ($maxurl_len && (strlen($decoded) > $maxurl_len)){
-					$urltext = substr($decoded, 0, $offset1) . '...' . substr($decoded, -$offset2);
-				}else{
-					$urltext = $decoded;
-				}
-
-				$pattern = '~([^\w]+)'.preg_quote($url).'([^\w]+)~';
-
-				$text = preg_replace($pattern, '\\1<a href="'. $url .'" '.$nofollow.' target="'. $target .'">'. $urltext .'</a>\\2', $text);
-
-			}
-		}
-
-		d('after make clickable: '.$text);
-		return $this->handleReturn($text);
-	}
-
-
-	/**
-	 * A simpler implementation of makeClickable
+	 * A simpler implementation of linkify
 	 * does not do truncating of link text
 	 * but seems to work better for certain links
-	 * 
-	 * Enter description here ...
+	 *
+	 * @important DO NOT use on HTML String!
+	 * for html string use HTMLStringParser::linkify()
+	 *
+	 * @return object of this class
 	 */
-	public function linkify()
-	{
+	public function linkify(){
+		if($this->isHtml()){
+			e('not cool to linkify this string because it is an HTML string Use \Lampcms\String\HTMLStringParser::linkify() for HTML strings');
+		}
+
 		$text = $this->string;
-		$text= preg_replace("/(^|[\n ])([\w]*?)((ht|f)tp(s)?:\/\/[\w]+[^ \,\"\n\r\t<]*)/is", "$1$2<a href=\"$3\" rel=\"nofollow\">$3</a>", $text);
-		$text= preg_replace("/(^|[\n ])([\w]*?)((www|ftp)\.[^ \,\"\t\n\r<]*)/is", "$1$2<a href=\"http://$3\" rel=\"nofollow\">$3</a>", $text);
+		$text= \preg_replace("/(^|[\n ])([\w]*?)((ht|f)tp(s)?:\/\/[\w]+[^ \,\"\n\r\t<]*)/is", "$1$2<a href=\"$3\" rel=\"nofollow\">$3</a>", $text);
+		$text= \preg_replace("/(^|[\n ])([\w]*?)((www|ftp)\.[^ \,\"\t\n\r<]*)/is", "$1$2<a href=\"http://$3\" rel=\"nofollow\">$3</a>", $text);
 
 		return $this->handleReturn($text);
 	}
@@ -555,15 +549,14 @@ class String extends LampcmsObject implements \Serializable
 	 * @param string $link
 	 * @return object of this class
 	 */
-	public function truncate($max, $link = '')
-	{
-		$words = preg_split("/[\s]+/", $string);
+	public function truncate($max, $link = ''){
+		$words = \preg_split("/[\s]+/", $this->string);
 			
 		$newstring = '';
 		$numwords = 0;
 			
 		foreach ($words as $word) {
-			if ((strlen($newstring) + 1 + strlen($word)) < $max) {
+			if ((\strlen($newstring) + 1 + \strlen($word)) < $max) {
 				$newstring .= ' '.$word;
 				++$numwords;
 			} else {
@@ -575,7 +568,7 @@ class String extends LampcmsObject implements \Serializable
 			$newstring .= '... '.$link;
 		}
 			
-		return $this->handleReturn($newstring);
+		return $this->handleReturn(\trim($newstring));
 	}
 
 
@@ -591,8 +584,7 @@ class String extends LampcmsObject implements \Serializable
 	 * @return object of this class
 	 */
 	public function escapeAmp(){
-
-		$newstring = preg_replace('/&(?!([#]{0,1})([a-zA-Z0-9]{2,9});)/u', '&amp;', $this->string);
+		$newstring = \preg_replace('/&(?!([#]{0,1})([a-zA-Z0-9]{2,9});)/u', '&amp;', $this->string);
 
 		return $this->handleReturn($newstring);
 	}
@@ -606,8 +598,7 @@ class String extends LampcmsObject implements \Serializable
 	 * representing the new string which is suitable
 	 * for being part of a url (SEO-friendly)
 	 */
-	public function makeLinkTitle($limit = 65)
-	{
+	public function makeLinkTitle($limit = 65){
 		/**
 		 * Remove 'a', 'the', 'an', 'i', 'you', 'we', 'it', 'is', 'are'
 		 */
@@ -630,29 +621,27 @@ class String extends LampcmsObject implements \Serializable
 		'/ my /i'
 		);
 
-		$str = preg_replace($aFiltered, ' ', $this->string);
+		$str = \preg_replace($aFiltered, ' ', $this->string);
 
 		/**
 		 * All non-alpha numeric chars will become dashes
 		 */
-		$str = preg_replace('/([^a-zA-Z0-9\-_])/', '-', $str);
+		$str = \preg_replace('/([^a-zA-Z0-9\-_])/', '-', $str);
 
-		$str = preg_replace('/(-){2,}/', '-', $str);
+		$str = \preg_replace('/(-){2,}/', '-', $str);
 
 		/**
 		 * Remove the Re: type prefix
 		 * because it's not adding any value to
 		 * SEO-freindly string
 		 */
-		$str = preg_replace('/^re-/i', '', $str);
-
-
+		$str = \preg_replace('/^re-/i', '', $str);
 
 		/**
 		 * Replace anything that looks like -_ or _- with
 		 * just an underscore
 		 */
-		$str = str_replace(array('-_', '_-'), '_', $str);
+		$str = \str_replace(array('-_', '_-'), '_', $str);
 
 		/**
 		 * If for some reason the string just became
@@ -663,7 +652,7 @@ class String extends LampcmsObject implements \Serializable
 		 * just say 'topic'
 		 */
 		if(empty($str) || ('-' === $str) || ('_' === $str)){
-			$str = 'topic';
+			$str = 'Question';
 		}
 
 		/**
@@ -673,7 +662,7 @@ class String extends LampcmsObject implements \Serializable
 		 */
 		if(strlen($str) <= $limit){
 
-			$str = trim($str, ' _-');
+			$str = \trim($str, ' _-');
 
 			return $this->handleReturn($str);
 		}
@@ -681,7 +670,7 @@ class String extends LampcmsObject implements \Serializable
 		/**
 		 * Find the right-most occurance of dash
 		 */
-		$lastPos = strrpos($str, '-', ($limit - strlen($str)) );
+		$lastPos = \strrpos($str, '-', ($limit - strlen($str)) );
 
 		/**
 		 * If last occurance of dash not found,
@@ -692,7 +681,7 @@ class String extends LampcmsObject implements \Serializable
 		 */
 		$lastPos = (false !== $lastPos) ? $lastPos : $limit;
 
-		$ret = substr($str, 0, $lastPos);
+		$ret = \substr($str, 0, $lastPos);
 
 		return $this->handleReturn($ret);
 	}
@@ -708,10 +697,9 @@ class String extends LampcmsObject implements \Serializable
 	 *
 	 * @return string email address string complete with first name, last name and email address
 	 */
-	public static function prepareEmail($strAddress, $strFirstName = '', $strLastName = '')
-	{
-		$fn_ln = trim($strFirstName.' '.$strLastName);
-		$filtered = htmlspecialchars($fn_ln);
+	public static function prepareEmail($strAddress, $strFirstName = '', $strLastName = ''){
+		$fn_ln = \trim(\trim($strFirstName).' '.\trim($strLastName));
+		$filtered = \htmlspecialchars($fn_ln);
 		$name = ('' !== $fn_ln) ? '"'.$filtered.'"' : '';
 		$recipient = ('' !== $name) ? $name.' <'.$strAddress.'>' : $strAddress;
 
@@ -720,14 +708,14 @@ class String extends LampcmsObject implements \Serializable
 
 
 	public function toLowerCase(){
-		$s = strtolower($this->string);
+		$s = \strtolower($this->string);
 
 		return $this->handleReturn($s);
 	}
 
 
 	public function toUpperCase(){
-		$s = strtoupper($this->string);
+		$s = \strtoupper($this->string);
 
 		return $this->handleReturn($s);
 	}
@@ -739,14 +727,19 @@ class String extends LampcmsObject implements \Serializable
 
 
 	public function substr($start, $len = null){
-		$s = substr($this->string, $start, $len);
+		$s = \substr($this->string, $start, $len);
 
 		return $this->handleReturn($s);
 	}
 
 
+	/**
+	 * Apply trim() to this string with no
+	 * extra params passed to trim, which is UTF-8 safe
+	 * @return object of this class
+	 */
 	public function trim(){
-		$s = trim($this->string);
+		$s = \trim($this->string);
 
 		return $this->handleReturn($s);
 	}

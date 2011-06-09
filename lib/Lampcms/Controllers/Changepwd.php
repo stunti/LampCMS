@@ -68,7 +68,6 @@ class Changepwd extends Resetpwd
 	 */
 	protected $oForm;
 
-	protected $aAllowedVars = array('current', 'pwd1', 'pwd2');
 
 
 	/**
@@ -90,7 +89,7 @@ class Changepwd extends Resetpwd
 				$this->emailPwd();
 			}
 
-			$this->aPageVars['body'] = '<div class="message">'.self::TPL_SUCCESS.'</div>';
+			$this->aPageVars['body'] = '<div id="tools">'.self::TPL_SUCCESS.'</div>';
 
 		} else {
 			$this->aPageVars['body'] = $this->oForm->getForm();
@@ -113,5 +112,4 @@ class Changepwd extends Resetpwd
 
 		return $this;
 	}
-
 }

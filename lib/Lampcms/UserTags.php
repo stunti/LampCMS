@@ -81,7 +81,7 @@ class UserTags extends LampcmsObject
 	 * @param int $uid
 	 * @param Question $oQuestion
 	 */
-	public function addTags($uid, Question $oQuestion){
+	public function addTags($uid, \Lampcms\Question $oQuestion){
 		/**
 		 * Questions that come from external APIs may not
 		 * have any user associated with it, uid is 0 or null then
@@ -89,22 +89,24 @@ class UserTags extends LampcmsObject
 		 * insert user tags, just return
 		 */
 		if(empty($uid)){
-			d('no uid, returning');
+			
 			return;
 		}
 
 		$uid = (int)$uid;
 
 		$aTags = $oQuestion['a_tags'];
+		
 		/**
 		 * Extra precaution to filter out
 		 * empty values
 		 */
-		$aTags = array_filter($aTags);
-		d('$aTags: '.var_export($aTags, true));
+		$aTags = \array_filter($aTags);
+		
 
 		$coll = $this->oRegistry->Mongo->getCollection(self::USER_TAGS);
 		$a = $coll->findOne(array('_id' => $uid));
+		
 		/**
 		 * If there is not record of tags for this user yet,
 		 * then we will make array with $tag => 1
@@ -115,10 +117,8 @@ class UserTags extends LampcmsObject
 		 * order by count and same to collection
 		 */
 		if(empty($a)){
-
-
 			$aTemp = array_count_values($aTags);
-			d('aTemp: '.print_r($aTemp, 1));
+			
 
 		} else {
 			$aTemp = $a['tags'];
@@ -130,7 +130,8 @@ class UserTags extends LampcmsObject
 				 * in index may cause very bad times in Mongo.
 				 */
 				if(empty($t)){
-					e('Strangly enough there is an empty value of the tag in array: '.print_r($aTags, 1));
+					//e('Strangly enough there is an empty value of the tag in array: '.print_r($aTags, 1));
+					
 					continue;
 				}
 
@@ -166,10 +167,10 @@ class UserTags extends LampcmsObject
 		 *
 		 */
 		$uid = ($uid) ? (int)$uid : $oQuestion->getOwnerId();
-		d('uid '.$uid);
+		
 
 		$aTags = $oQuestion['a_tags'];
-		d('$aTags: '.var_export($aTags, true));
+		
 
 		/**
 		 * Extra precaution to filter out
@@ -181,7 +182,7 @@ class UserTags extends LampcmsObject
 		$a = $coll->findOne(array('_id' => $uid));
 
 		if(empty($a) || empty($a['tags'])){
-			d('strange, but there are no user tags');
+			
 
 			return $this;
 		}
@@ -207,7 +208,7 @@ class UserTags extends LampcmsObject
 		 * in index and will throw exception or error
 		 *
 		 */
-		$aUserTags = array_filter($aUserTags);
+		$aUserTags = \array_filter($aUserTags);
 
 		arsort($aUserTags, SORT_NUMERIC);
 

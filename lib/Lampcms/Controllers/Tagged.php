@@ -56,8 +56,8 @@ use \Lampcms\Relatedtags;
 /**
  * Controller for rendering page
  * with list of questions for specific tag or tags
- * 
- * 
+ *
+ *
  * @author Dmitri Snytkine
  *
  */
@@ -78,9 +78,18 @@ class Tagged extends Unanswered
 	 * Conditions can be == 'unanswered', 'hot', 'recent' (default)
 	 */
 	protected function getCursor(){
-		$this->pagerPath = '/tagged/'.$this->oRequest['tags'];
 
+		/**
+		 * Must call getTags() before
+		 * using this->rawTags because
+		 * it is set inside the getTags() method
+		 *
+		 *
+		 */
 		$this->aTags = $this->getTags();
+		$this->pagerPath = '/tagged/'.$this->rawTags;
+
+
 		d('aTags: '.print_r($this->aTags, 1));
 
 		$aFields = array();
@@ -94,20 +103,10 @@ class Tagged extends Unanswered
 		 *
 		 */
 		$sort = array('i_ts' => -1);
-		/**
-		 * @todo translate this title later
-		 *
-		 */
-		$this->title = $this->oRequest['tags'];
-		$where = array('a_tags' => array('$all' => $this->aTags) );
 
-		/**
-		 * Exclude deleted items unless viewer
-		 * is a moderator
-		 */
-		if(!$this->oRegistry->Viewer->isModerator()){
-			$where['i_del_ts'] = null;
-		}
+		$where = array('a_tags' => array('$all' => $this->aTags) );
+		$where['i_del_ts'] = null;
+
 
 		/**
 		 * @todo
@@ -115,10 +114,10 @@ class Tagged extends Unanswered
 		 *
 		 * @var unknown_type
 		 */
-		$this->counterTaggedText = \tplCounterblocksub::parse(array(str_replace(' ', ' + ', $this->oRequest['tags']), 'Tagged'), false);
+		$this->counterTaggedText = \tplCounterblocksub::parse(array(str_replace(' ', ' + ', $this->tags), 'Tagged'), false);
 
 
-		$this->oCursor = $this->oRegistry->Mongo->QUESTIONS->find($where);
+		$this->oCursor = $this->oRegistry->Mongo->QUESTIONS->find($where, $this->aFields);
 		$this->count = $this->oCursor->count(true);
 		d('$this->oCursor: '.gettype($this->oCursor).' $this->count: '.$this->count);
 		$this->oCursor->sort($sort);
@@ -126,8 +125,8 @@ class Tagged extends Unanswered
 		return $this;
 	}
 
-	
-	
+
+
 	protected function makeRecentTags(){
 
 		/**
@@ -146,7 +145,7 @@ class Tagged extends Unanswered
 		 * to all our tags.
 		 * We would then loop over cursor and pass
 		 * each array to tplRelatedlink, passing each _id
-		 * as value of 'tag' and prepend +tag to $this->oRequest['tags'] as
+		 * as value of 'tag' and prepend +tag to $this->rawTags as
 		 * value of 'link'
 		 *
 		 * This will be slower than just using pre-parsed related tags
@@ -169,7 +168,7 @@ class Tagged extends Unanswered
 		}
 
 		$this->makeFollowTagButton();
-		
+
 		return $this;
 	}
 

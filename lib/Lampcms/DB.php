@@ -107,8 +107,7 @@ class DB extends LampcmsObject
 	 *
 	 * @return object
 	 */
-	public function __construct(Registry $oRegistry)
-	{
+	public function __construct(Registry $oRegistry){
 		$this->oRegistry = $oRegistry;
 		$this->oIni = $oRegistry->Ini;
 	}
@@ -141,7 +140,7 @@ class DB extends LampcmsObject
 	protected function connect(){
 		$sDsn = $this->makeDsn();
 
-		d('$this->aDB: '.print_r($this->aDB, 1).' DNS: '.$sDsn);
+		d('$this->aDB: '.print_r($this->aDB, 1).' DSN: '.$sDsn);
 		$aOptions = array(PDO::ATTR_PERSISTENT => false);
 
 		if (isset($this->aDB['Persistent']) && (true === (bool)$this->aDB['Persistent'])) {
@@ -182,8 +181,7 @@ class DB extends LampcmsObject
 	 * Getter of PDO dbh object
 	 * @return object of type PDO
 	 */
-	public function getDbh()
-	{
+	public function getDbh(){
 		if(!isset($this->dbh)){
 			$this->connect();
 		}
@@ -192,8 +190,7 @@ class DB extends LampcmsObject
 	}
 
 
-	public function __clone()
-	{
+	public function __clone(){
 		throw new DevException('cloning DB object not allowed');
 	}
 
@@ -208,14 +205,8 @@ class DB extends LampcmsObject
 	 * some required elements are missing
 	 * in the !config.ini file
 	 */
-	protected function makeDsn()
-	{
+	protected function makeDsn(){
 		$this->aDB = $this->oIni->getSection('DB');
-
-		if (null === $this->aDB) {
-				
-			throw new IniException('section "DB" does not exist in aIni');
-		}
 
 		if (!isset($this->aDB['Database_username']) || !isset($this->aDB['Database_password'])) {
 				
@@ -234,31 +225,47 @@ class DB extends LampcmsObject
 	 * @throws LampcmsIniException if some
 	 * required values in DB section are not set
 	 */
-	protected function getDSN()
-	{
+	protected function getDSN(){
 
 		if ( empty($this->aDB['Database_name']) || empty($this->aDB['Database_host']) ||
 		empty ($this->aDB['Database_type'])) {
 				
-			throw new IniException('Cannot create dsn because some required dns params are missing: '.
-			print_r($this->aDB, true));
+			throw new IniException('Cannot create dsn because some required dns params are missing: '.print_r($this->aDB, true));
 		}
 
-		$dbhost = strtolower($this->aDB['Database_host']);
+		/**
+		 * LAMPCMS_TEST is the name we use in Unit Tests
+		 * If the actual name is also LAMPCMS_TEST then
+		 * Unit tests will destroy actual database during
+		 * tests. This should not be allowed!
+		 */
+		if('LAMPCMS_TEST' === \trim($this->aDB['Database_name']) ){
+			throw new DevException('Reserved name! You cannot name your database '.$this->aDB['Database_name'].' Please set different value of Database_name is !config.ini');
+		}
+		
+		$dbhost = \strtolower($this->aDB['Database_host']);
+		
+		/**
+		 * Always try to use defined LAMPCMS_MYSQL_DB
+		 * This is useful in Unit testing so we can
+		 * define value for test database and not 
+		 * use live database!
+		 * 
+		 * @var string
+		 */
+		$dbname = (defined('LAMPCMS_MYSQL_DB')) ? LAMPCMS_MYSQL_DB : $this->aDB['Database_name'];
 
-		$ret = strtolower($this->aDB['Database_type']).':host='.$dbhost;
+		$ret = \strtolower($this->aDB['Database_type']).':host='.$dbhost;
 		if ('localhost' !== $dbhost) {
-
 			if ( empty ($this->aDB['TCP_Port_number'])) {
 
 				throw new IniException('If Database_host is not "localhost" then "TCP_Port_number" MUST be defined');
 			}
 
 			$ret .= ';port='.$this->aDB['TCP_Port_number'];
-
 		}
 
-		$ret .= ';dbname='.$this->aDB['Database_name'];
+		$ret .= ';dbname='.$dbname;
 
 		return $ret;
 
@@ -295,8 +302,7 @@ class DB extends LampcmsObject
 	 * array or empty array
 	 */
 	public function getQueryResult($strSql, $strErr2 = '', $types = null, $m = PDO::FETCH_ASSOC,
-	$rekey = false, $force_array = false, $group = false)
-	{
+	$rekey = false, $force_array = false, $group = false){
 		$aRes = array();
 
 		if (true === $force_array) {
@@ -337,8 +343,7 @@ class DB extends LampcmsObject
 	 * @param object $sql
 	 * @param string $sql the sql to execute
 	 */
-	public function getKeyVal($sql, $err = '')
-	{
+	public function getKeyVal($sql, $err = ''){
 		$aRes = array();
 			
 		try {
@@ -369,8 +374,7 @@ class DB extends LampcmsObject
 	 * @param string $err extra string
 	 * for logging/debugging
 	 */
-	public function getRekeyed($sql, $strErr2 = '')
-	{
+	public function getRekeyed($sql, $strErr2 = ''){
 		$aRes = array();
 
 		try {
@@ -403,8 +407,7 @@ class DB extends LampcmsObject
 	 * false
 	 *
 	 */
-	public function fetchOne($strSql, $strErr2 = '')
-	{
+	public function fetchOne($strSql, $strErr2 = ''){
 		$ret = false;
 
 		d('sql: '.$strSql);
@@ -424,22 +427,21 @@ class DB extends LampcmsObject
 		return $ret;
 	}
 
+	
 	/**
 	 * Set the value of $this->ts
 	 * to the current time in milliseconds
 	 *
 	 * @return object $this
 	 */
-	protected function initTimer()
-	{
+	protected function initTimer(){
 		$this->ts = microtime(true);
 
 		return $this;
 	}
 
 
-	public function execPrepared(\PDOStatement $sth)
-	{
+	public function execPrepared(\PDOStatement $sth){
 		$this->initTimer();
 		try{
 			$ret = $sth->execute();
@@ -475,8 +477,7 @@ class DB extends LampcmsObject
 	 * @return object $this
 	 * @param string $sql
 	 */
-	protected function logQuery($sql, $endTs = null)
-	{
+	protected function logQuery($sql, $endTs = null){
 		if (null === $this->ts) {
 				
 			throw new DevException('valus of $this->ts was not set. Unable to log query');
@@ -493,11 +494,11 @@ class DB extends LampcmsObject
 	 * Getter for $this->aLog
 	 * @return array $this->aLog
 	 */
-	public function getDebugLog()
-	{
+	public function getDebugLog(){
 		return $this->aLog;
 	}
 
+	
 	/**
 	 *
 	 * @return string a debug output
@@ -507,8 +508,7 @@ class DB extends LampcmsObject
 	 * if true, then converts line feeds
 	 * to <br>
 	 */
-	public function dumpLog($asHTML = false)
-	{
+	public function dumpLog($asHTML = false){
 		$intTotalTime = 0;
 		$numQueries = count($this->aLog);
 		$ret = "\r\n".'SQL data: '."\r\n";
@@ -526,6 +526,7 @@ class DB extends LampcmsObject
 		return ($asHTML) ? nl2br($ret) : $ret;
 	}
 
+	
 	/**
 	 * Creates a PDOStatement object
 	 * if it has not been already created
@@ -535,8 +536,7 @@ class DB extends LampcmsObject
 	 * @param object $sql
 	 * @param object $strErr2[optional]
 	 */
-	public function makePrepared($sql, $strErr2 = '')
-	{
+	public function makePrepared($sql, $strErr2 = ''){
 
 		try {
 			$sth = $this->initTimer()->getDbh()->prepare($sql);
@@ -555,8 +555,7 @@ class DB extends LampcmsObject
 	 *
 	 * @return int $intId last inserted id
 	 */
-	public function getLastInsertId()
-	{
+	public function getLastInsertId(){
 		$ret = false;
 		$ret = $this->getDbh()->lastInsertId();
 
@@ -564,6 +563,7 @@ class DB extends LampcmsObject
 
 	} // end getLastInsertId
 
+	
 	/**
 	 * Just directly execute a query
 	 * this is usefull for update, insert and delete queries
@@ -574,8 +574,7 @@ class DB extends LampcmsObject
 	 *
 	 * @return int count of affected rows
 	 */
-	public function exec($strSql, $strErr2 = '')
-	{
+	public function exec($strSql, $strErr2 = ''){
 		$count = 0;
 		try {
 			$count = $this->getDbh()->exec($strSql);
@@ -592,6 +591,7 @@ class DB extends LampcmsObject
 		return $count;
 	}
 
+	
 	/**
 	 * Returns associative array where
 	 * keys are column names and
@@ -601,8 +601,7 @@ class DB extends LampcmsObject
 	 *
 	 * @return array assosiative array
 	 */
-	public function getTableColumns($strTableName, $strErr2 = '')
-	{
+	public function getTableColumns($strTableName, $strErr2 = ''){
 		$strTableName = filter_var($strTableName, FILTER_SANITIZE_SPECIAL_CHARS, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
 		$strTableName = str_replace(';', '', $strTableName);
 		$strTableName = addslashes($strTableName);
@@ -632,8 +631,6 @@ class DB extends LampcmsObject
 		}
 
 		return $aRes;
-
 	}
-
 
 }

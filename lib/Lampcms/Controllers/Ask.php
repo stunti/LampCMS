@@ -70,7 +70,10 @@ class Ask extends Askform
 
 	protected function main(){
 		$this->aPageVars['title'] = "Ask a Question";
-		
+
+		$a = $this->oRegistry->Request->getArray();
+		d('request: '.print_r($a, 1).' POST: '.print_r($_POST, 1));
+
 		$this->makeForm();
 
 		if($this->oForm->validate()){
@@ -92,8 +95,7 @@ class Ask extends Askform
 	 *
 	 * Process submitted form values
 	 */
-	protected function process()
-	{
+	protected function process(){
 
 		$formVals = $this->oForm->getSubmittedValues();
 		d('formVals: '.print_r($formVals, 1));
@@ -103,14 +105,17 @@ class Ask extends Askform
 			d('cp created new question');
 			d('title: '.$oQuestion['title']);
 
+			/*if(LAMPCMS_DEBUG){
+				Responder::sendJSON(array());
+			}*/
+			
 			Responder::redirectToPage($oQuestion->getUrl());
-			//Responder::sendJSON(array());
+			
 
 		} catch (QuestionParserException $e){
 			$this->oForm->setFormError($e->getMessage());
 			$this->showFormWithErrors();
 		}
-
 	}
 
 }

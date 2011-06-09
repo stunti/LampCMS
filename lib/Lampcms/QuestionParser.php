@@ -53,6 +53,9 @@
 namespace Lampcms;
 
 
+use Lampcms\String\HTMLStringParser;
+
+
 /**
  *
  * Class responsible for adding a new question
@@ -152,16 +155,7 @@ class QuestionParser extends LampcmsObject
 	 */
 	protected function makeQuestion(){
 
-		/**
-		 * Is this protection necessary?
-		 * Seems that without it
-		 * a title may have html tags
-		 * or something like a comment:
-		 * <!--more-->
-		 *
-		 * @var unknown_type
-		 */
-		$title = $this->oSubmitted->getTitle()->htmlentities()->trim()->valueOf();
+		$oTitle = $this->oSubmitted->getTitle()->htmlentities()->trim();
 
 		$username = $this->oSubmitted->getUserObject()->getDisplayName();
 
@@ -169,33 +163,22 @@ class QuestionParser extends LampcmsObject
 
 		/**
 		 * Must pass array('drop-proprietary-attributes' => false)
-		 * otherwise tidy removes rel="code" // ->makeClickable() // was after getBody
+		 * otherwise tidy removes rel="code"
 		 */
-		$oBody = $this->oSubmitted->getBody()->tidy()->safeHtml()->asHtml();
+		$aEditorConfig = $this->oRegistry->Ini->getSection('EDITOR');
+		$tidyConfig = ($aEditorConfig['ENABLE_CODE_EDITOR']) ? array('drop-proprietary-attributes' => false) : null;
+		$oBody = $this->oSubmitted->getBody()->tidy($tidyConfig)->safeHtml()->asHtml();
 
 		/**
 		 *
 		 * Now body is in html but we still need to run
-		 * it through Utf8Html string in order
+		 * it through HTMLStringParser string in order
 		 * to make clickable links and to
 		 * make sure all links are nofollow
 		 *
 		 */
-
-		/**
-		 * Not sure why we need to run the string through
-		 * DomFeedItem now.
-		 * What it does is fixes potentially bad html fragment
-		 * and also makes sure all links are "nofollow"
-		 * it also helpful
-		 * to guard agains any type of hacks
-		 *
-		 * At that time we should also add safeHtml() to oClickable
-		 * and pass array of our allowed tags
-		 *
-		 */
-		$htmlBody = DomFeedItem::loadFeedItem($oBody)->getFeedItem();
-		d('after DomFeedItem: '.$htmlBody);
+		$htmlBody = HTMLStringParser::factory($oBody)->parseCodeTags()->linkify()->importCDATA()->setNofollow()->hilightWords($aTags)->valueOf();
+		d('after HTMLStringParser: '.$htmlBody);
 
 		$uid = $this->oSubmitted->getUserObject()->getUid();
 		$hash = hash('md5', strtolower($htmlBody.json_encode($aTags)));
@@ -218,13 +201,13 @@ class QuestionParser extends LampcmsObject
 		 */
 		$aData = array(
 		'_id' => $this->oRegistry->Resource->create('QUESTION'),
-		'title' => $title,
+		'title' => $oTitle->valueOf(),
 		/*'title_hash' => hash('md5', strtolower(trim($title)) ),*/
-		'b' => Bodytagger::highlight($htmlBody, $aTags),
+		'b' => $htmlBody,
 		'hash' => $hash,
 		'intro' => $this->oSubmitted->getBody()->asPlainText()->truncate(150)->valueOf(),
 		'url' => $this->oSubmitted->getTitle()->toASCII()->makeLinkTitle()->valueOf(),
-		'i_words' => $this->oSubmitted->getBody()->getWordsCount(),
+		'i_words' => $this->oSubmitted->getBody()->asPlainText()->getWordsCount(),
 		'i_uid' => $uid,
 		'username' => $username,
 		'ulink' => '<a href="'.$this->oSubmitted->getUserObject()->getProfileUrl().'">'.$username.'</a>',
@@ -235,9 +218,8 @@ class QuestionParser extends LampcmsObject
 		'i_favs' => 0,
 		'i_views' => 0,
 		'a_tags' => $aTags,
-		'a_title' => TitleTokenizer::factory($title)->getArrayCopy(),
+		'a_title' => TitleTokenizer::factory($oTitle)->getArrayCopy(),
 		'status' => 'unans',
-		'tags_c' => trim(\tplQtagsclass::loop($aTags, false)),
 		'tags_html' => \tplQtags::loop($aTags, false),
 		'credits' => '',
 		'i_ts' => $time,
@@ -320,21 +302,6 @@ class QuestionParser extends LampcmsObject
 	 * @return object $this
 	 */
 	protected function followQuestion(){
-		/*$qid = $this->oQuestion->getResourceId();
-		 d('qid: '.$qid);
-
-		 $aFollowedQuestions = $this->oRegistry->Viewer['a_f_q'];
-		 d('$aFollowedQuestions: '.$aFollowedQuestions);
-		 if(in_array($qid, $aFollowedQuestions)){
-			e( 'User '.$this->oRegistry->Viewer->getUid().'is already following question $qid '.$qid);
-
-			return $this;
-			}
-
-			$aFollowedQuestions[] = $qid;
-			$this->oRegistry->Viewer['a_f_q'] = $aFollowedQuestions;
-			$this->oRegistry->Viewer['i_f_q'] = count($aFollowedQuestions);
-			$this->oRegistry->Viewer->save();*/
 
 		/**
 		 * For consistant behaviour it is
@@ -342,7 +309,7 @@ class QuestionParser extends LampcmsObject
 		 * do this manually
 		 */
 		FollowManager::factory($this->oRegistry)->followQuestion($this->oRegistry->Viewer, $this->oQuestion);
-		
+
 		return $this;
 	}
 
@@ -406,7 +373,7 @@ class QuestionParser extends LampcmsObject
 	/**
 	 * Index question
 	 *
-	 * @todo do this via register_shutdown_function
+	 * @todo do this via runLater
 	 *
 	 * @return object $this
 	 */
@@ -427,13 +394,13 @@ class QuestionParser extends LampcmsObject
 
 		$o = Qtagscounter::factory($this->oRegistry);
 		$oQuestion = $this->oQuestion;
-
-		register_shutdown_function(function() use($o, $oQuestion){
-			$o->parse($oQuestion);
+		if(count($oQuestion['a_tags']) > 0){
+			$callable = function() use($o, $oQuestion){
+				$o->parse($oQuestion);
+			};
 			d('cp');
-		});
-
-		d('cp');
+			runLater($callable);
+		}
 
 		return $this;
 	}
@@ -449,10 +416,14 @@ class QuestionParser extends LampcmsObject
 
 		$oRelated = Relatedtags::factory($this->oRegistry);
 		$oQuestion = $this->oQuestion;
-
-		register_shutdown_function(function() use ($oRelated, $oQuestion){
-			$oRelated->addTags($oQuestion);
-		});
+		if(count($oQuestion['a_tags']) > 0){
+			d('cp');
+			$callable = function() use ($oRelated, $oQuestion){
+				$oRelated->addTags($oQuestion);
+			};
+			runLater($callable);
+		}
+		d('cp');
 
 		return $this;
 	}
@@ -467,14 +438,15 @@ class QuestionParser extends LampcmsObject
 	 */
 	protected function addUnansweredTags(){
 		if('accptd' !== $this->oQuestion['status']){
-			$o = new UnansweredTags($this->oRegistry);
-			$oQuestion = $this->oQuestion;
-
-			register_shutdown_function(function() use ($o, $oQuestion){
-				$o->set($oQuestion);
+			if(count($this->oQuestion['a_tags']) > 0){
+				$o = new UnansweredTags($this->oRegistry);
+				$oQuestion = $this->oQuestion;
+				$callable = function() use ($o, $oQuestion){
+					$o->set($oQuestion);
+				};
 				d('cp');
-			});
-
+				runLater($callable);
+			}
 			d('cp');
 		}
 
@@ -492,13 +464,13 @@ class QuestionParser extends LampcmsObject
 		$oUserTags = UserTags::factory($this->oRegistry);
 		$uid = $this->oSubmitted->getUserObject()->getUid();
 		$oQuestion = $this->oQuestion;
-
-		register_shutdown_function(function() use ($oUserTags, $uid, $oQuestion){
-			$oUserTags->addTags($uid, $oQuestion);
-			d('cp');
-		});
-
-		d('cp');
+		if(count($oQuestion['a_tags']) > 0){
+			$callable = function() use ($oUserTags, $uid, $oQuestion){
+				$oUserTags->addTags($uid, $oQuestion);
+			};
+			
+			runLater($callable);
+		}
 
 		return $this;
 	}

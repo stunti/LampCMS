@@ -58,13 +58,20 @@ namespace Lampcms;
  * @author Dmitri Snytkine
  *
  */
-class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User, Interfaces\TwitterUser, Interfaces\FacebookUser
+
+class User extends MongoDoc implements Interfaces\RoleInterface,
+Interfaces\User,
+Interfaces\TwitterUser,
+Interfaces\FacebookUser,
+Interfaces\TumblrUser,
+Interfaces\BloggerUser
 {
 
 	/**
 	 * Special flag indicates that user has
-	 * just registered. This flag stays only during
-	 * the session, so for the whole duraction of the session
+	 * just registered.
+	 * This flag stays only during
+	 * the session, so for the whole duration of the session
 	 * we know that this is a new user
 	 * @var bool
 	 */
@@ -81,16 +88,6 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 
 	/**
-	 *
-	 * Store value of resolved isModerator() call
-	 * for memoization
-	 *
-	 * @var bool
-	 */
-	protected $bIsModerator;
-
-
-	/**
 	 * Factory method
 	 *
 	 * @todo MUST pass Registry here!
@@ -99,8 +96,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return object of this class
 	 */
-	public static function factory(Registry $oRegistry, array $a = array())
-	{
+	public static function factory(Registry $oRegistry, array $a = array()){
 		$o = new static($oRegistry, 'USERS', $a);
 		$o->applyDefaults();
 
@@ -112,8 +108,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * (non-PHPdoc)
 	 * @see Lampcms.ArrayDefaults::__get()
 	 */
-	public function __get($name)
-	{
+	public function __get($name){
 		if('id' === $name){
 
 			return $this->getUid();
@@ -124,26 +119,14 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 
 	/**
-	 * Checks to see if profile exists for the user
+	 * Getter for userID (value of USERS._id)
 	 *
-	 * @return bool true if profile exists
+	 * @return int value of userid (value of USERS._id)
 	 */
-	public function isProfileSet()
-	{
-		return $this->checkOffset('profile');
-	}
-
-
-	/**
-	 * Getter for userID (value of USER.id)
-	 *
-	 * @return int value of userid (value of USER.id)
-	 */
-	public function getUid()
-	{
+	public function getUid(){
 		d('$this->keyColumn: '.$this->keyColumn);
 
-		if (true !== $this->checkOffset($this->keyColumn)) {
+		if (true !== $this->offsetExists($this->keyColumn)) {
 			d('cp no key column '.$this->keyColumn);
 
 			return 0;
@@ -189,31 +172,23 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	/**
 	 * Check if user is moderator, which
 	 * includes all types of moderator or admin
-	 * or root
 	 *
 	 * @return bool true if moderator, falst otherwise
 	 */
 	public function isModerator(){
+		$role = $this->getRoleId();
 
-		if(!isset($this->bIsModerator)){
-			$role = $this->getRoleId();
-
-			$this->bIsModerator = (('administrator' === $role) || strstr($role, 'moderator') );
-
-		}
-
-		return $this->bIsModerator;
-
+		return  (('administrator' === $role) || false !== (\strstr($role, 'moderator')) );
 	}
 
 
 	/**
 	 * Get full name of user
 	 * by concatinating first name, middle name, last name
+	 * 
 	 * @return string full name
 	 */
-	public function getFullName()
-	{
+	public function getFullName(){
 		return $this->offsetGet('fn').' '.$this->offsetGet('mn').' '.$this->offsetGet('ln');
 	}
 
@@ -226,30 +201,20 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return string value to display on welcome block
 	 */
-	public function getDisplayName()
-	{
+	public function getDisplayName(){
 		$ret = $this->getFullName();
 		/**
 		 * Must trim, otherwise
 		 * we can have a string with just 2 spaces, which
 		 * is not considered empty.
 		 */
-		$ret = trim($ret);
-		if(!empty($ret)){
-			d('returning full name: '.$ret);
-
-			return $ret;
-		}
-
-		$ret = $this->offsetGet('username');
-		d('returning full name: '.$ret);
-
-		return $ret;
+		$ret = \trim($ret);
+		return (!empty($ret)) ? $ret : $this->offsetGet('username');
 	}
 
 
-	public function __set($name, $val)
-	{
+	public function __set($name, $val){
+
 		$this->offsetSet($name, $val);
 	}
 
@@ -262,10 +227,8 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return string the HTML code for image src
 	 */
-	public function getAvatarImgSrc($sSize = 'medium', $noCache = false)
-	{
-		d('cp');
-		$strAvatar = '<img src="' . $this->getAvatarSrc($noCache) . '" class="imgAvatar" width="40" height="40" border="0" alt="avatar"/>';
+	public function getAvatarImgSrc($sSize = 'medium', $noCache = false){
+		$strAvatar = '<img src="' . $this->getAvatarSrc($noCache) . '" class="img_avatar" width="40" height="40" border="0" alt="avatar"/>';
 
 		return $strAvatar;
 
@@ -282,11 +245,12 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 		if(!isset($this->avtrSrc)){
 
-			$srcAvatar = trim($this->offsetGet('avatar'));
+			$srcAvatar = \trim($this->offsetGet('avatar'));
 			if(empty($srcAvatar)){
-				$srcAvatar =  trim($this->offsetGet('avatar_external'));
+				$srcAvatar =  \trim($this->offsetGet('avatar_external'));
 			}
 
+			//  && (true !== $this->offsetGet('noavatar'))
 			if(empty($srcAvatar)){
 				$email = $this->offsetGet('email');
 				$aGravatar = array();
@@ -298,6 +262,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 				if(!empty($email) && (count($aGravatar) > 0)){
 					d('cp');
+
 					return $aGravatar['url'].hash('md5', $email).'?s='.$aGravatar['size'].'&d='.$aGravatar['fallback'].'&r='.$aGravatar['rating'];
 				}
 				d('cp');
@@ -312,7 +277,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 			 * like avatar from Twitter or FC or GFC
 			 *
 			 */
-			$this->avtrSrc = (0 === strncmp($srcAvatar, 'http', 4)) ? $srcAvatar : AVATAR_IMG_SITE.PATH_WWW_IMG_AVATAR_SQUARE.$srcAvatar;
+			$this->avtrSrc = (0 === \strncmp($srcAvatar, 'http', 4)) ? $srcAvatar : AVATAR_IMG_SITE.PATH_WWW_IMG_AVATAR_SQUARE.$srcAvatar;
 
 			if (true === $noCache) {
 				$this->avtrSrc .= '?id=' . microtime(true); // helps browser to NOT cache this image
@@ -336,80 +301,6 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 
 	/**
-	 */
-	protected function getAvatarPath()
-	{
-		$base = AVATAR_IMG_SITE;
-
-	}
-
-
-	/**
-	 * Get profile object for this user
-	 * set in as instance variable if not already there
-	 * for memoization
-	 *
-	 * @deprecated
-	 * @todo to remove soon, no longer user
-	 *
-	 * @return array
-	 */
-	public function getProfile()
-	{
-		if(!$this->isProfileSet()){
-			// need to return some type of default profile.....
-		}
-
-		return $this->offsetGet('profile');
-	}
-
-
-	/**
-	 * Get preferences object
-	 * for this user
-	 *
-	 * @deprecated
-	 * @todo to remove soon, no longer used
-	 *
-	 * @return array
-	 *
-	 */
-	public function getPrefs()
-	{
-		if(!$this->checkOffset('prefs')){
-			//
-		}
-
-		return $this->offsetGet('prefs');
-	}
-
-
-	/**
-	 * Returns array of this array merged with
-	 * array of profile.
-	 * The result is array of all fields from USERS and PROFILE table
-	 * for this user.
-	 *
-	 * This is convenient method to get array for editing of profile
-	 *
-	 * Important: it contains all columns from 2 tables, even those
-	 * that should not always be shown to other users or even
-	 * to this user, like data that user may not even be aware that we store
-	 * about him/her
-	 * So, be very carefull not to show all fields, use some sort of
-	 * custom filters.
-	 *
-	 * @todo change this to return profile
-	 *
-	 * @return unknown_type
-	 */
-	public function getFullProfileArray()
-	{
-		return $this->getMerged($this->getProfile());
-	}
-
-
-	/**
 	 * Implements Zend_Acl_Role_Interface
 	 * (non-PHPdoc)
 	 *
@@ -419,8 +310,8 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * @return string the value of user_group_id of user which
 	 * serves as the role name in Zend_Acl
 	 */
-	public function getRoleId()
-	{
+	public function getRoleId(){
+
 		$role = $this->offsetGet('role');
 
 		return (!empty($role)) ? $role : 'guest';
@@ -428,21 +319,58 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 
 
 	/**
+	 * Setter for 'role' key
+	 *
+	 * This setter validates the role name
+	 * to be one in the ACL file
+	 *
+	 * @param string $role
+	 */
+	public function setRoleId($role){
+		if(!\is_string($role)){
+			throw new \InvalidArgumentException('$role must be a string. was: '.gettype($role));
+		}
+		$a = $this->getRegistry()->Acl->getRegisteredRoles();
+		if(!\array_key_exists($role, $a)){
+			throw new \Lampcms\DevException('The $role name: '.$role.' is not one of the roles in the acl.ini file');
+		}
+
+		/**
+		 * IMPORTANT: do not make a mistake
+		 * of using $this->offsetSet()
+		 * because it will point back to
+		 * this function and start
+		 * an evil infinite loop untill we will
+		 * run out of memory
+		 */
+		parent::offsetSet('role', $role);
+	}
+
+
+	/**
 	 * Get twitter user_id of user
 	 * @return int
 	 */
-	public function getTwitterUid()
-	{
+	public function getTwitterUid(){
+
 		return $this->offsetGet('twitter_uid');
 	}
 
+
+	/**
+	 * Get html of the link to User's Twitter page
+	 * If user has Twitter account
+	 *
+	 * @return string html code for link or
+	 * empty string if user does not have Twitter account
+	 */
 	public function getTwitterUrl(){
 		$user = $this->getTwitterUsername();
 		if(empty($user)){
 			return '';
 		}
 
-		return '<a rel="nofollow" href="http://twitter.com/'.$user.'">@'.$user.'</a>';
+		return '<a rel="nofollow" class="twtr" href="http://twitter.com/'.$user.'">@'.$user.'</a>';
 	}
 
 
@@ -451,8 +379,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * that we got from Twitter for this user
 	 * @return string
 	 */
-	public function getTwitterToken()
-	{
+	public function getTwitterToken(){
 		return $this->offsetGet('oauth_token');
 	}
 
@@ -461,9 +388,8 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * Get oAuth sercret that we got for this user
 	 * @return string
 	 */
-	public function getTwitterSecret()
-	{
-		return $this->offsetGet('oauth_token_secret'); //twitter_token
+	public function getTwitterSecret(){
+		return $this->offsetGet('oauth_token_secret');
 	}
 
 
@@ -471,8 +397,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * (non-PHPdoc)
 	 * @see Lampcms\Interfaces.TwitterUser::getTwitterUsername()
 	 */
-	public function getTwitterUsername()
-	{
+	public function getTwitterUsername(){
 		return $this->offsetGet('twtr_username');
 	}
 
@@ -484,8 +409,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return object $this
 	 */
-	public function revokeOauthToken()
-	{
+	public function revokeOauthToken(){
 		d('Revoking user OauthToken');
 		$this->offsetUnset('oauth_token');
 		$this->offsetUnset('oauth_token_secret');
@@ -510,21 +434,18 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return object $this;
 	 */
-	public function revokeFacebookConnect()
-	{
+	public function revokeFacebookConnect(){
 		/**
 		 * Instead of offsetUnset we do
 		 * offsetSet and set to null
 		 * This is necessary in case user
-		 * does not have these keys yet,
+		 * does not have this key yet,
 		 * in which case offsetUnset will raise error
 		 */
-		$this->offsetSet('fb_id', null);
 		$this->offsetSet('fb_token', null);
 		$this->save();
 
-		$coll = $this->getRegistry()->Mongo->USERS_FACEBOOK;
-		$coll->update(array('i_uid' => $this->getUid()), array('$set' => array('access_token' => '')));
+		$this->getRegistry()->Mongo->USERS_FACEBOOK->update(array('i_uid' => $this->getUid()), array('$set' => array('access_token' => '')));
 		d('revoked FB token for user: '.$uid);
 
 		return $this;
@@ -535,15 +456,19 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * (non-PHPdoc)
 	 * @see Lampcms\Interfaces.FacebookUser::getFacebookUid()
 	 */
-	public function getFacebookUid()
-	{
+	public function getFacebookUid(){
+
 		return (string)$this->offsetGet('fb_id');
 	}
 
 
 	/**
+	 * Get html for the link to user's
+	 * Facebook profile
 	 *
-	 * Enter description here ...
+	 * @return string empty string if user does not
+	 * have fb_url value or html fragment for the link
+	 * to this User's Facebok page
 	 */
 	public function getFacebookUrl(){
 		$url = $this->offsetGet('fb_url');
@@ -551,7 +476,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 			return '';
 		}
 
-		return '<a rel="nofollow" href="'.$url.'">'.$url.'</a>';
+		return '<a rel="nofollow" class="fbook" href="'.$url.'">'.$url.'</a>';
 	}
 
 
@@ -564,8 +489,11 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	}
 
 
-	public function __toString()
-	{
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsArray::__toString()
+	 */
+	public function __toString(){
 		return 'object of type '.$this->getClass().' for userid: '.$this->getUid();
 	}
 
@@ -575,8 +503,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 *
 	 * @return object $this
 	 */
-	public function setNewUser()
-	{
+	public function setNewUser(){
 		$this->bNewUser = true;
 
 		return $this;
@@ -589,8 +516,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * @return bool true indicates that this object
 	 * represents a new user
 	 */
-	public function isNewUser()
-	{
+	public function isNewUser(){
 		return $this->bNewUser;
 	}
 
@@ -614,19 +540,61 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	public function hashCode(){
 		$a = $this->getArrayCopy();
 
-		return hash('md5', json_encode($a).$this->getClass().$this->bNewUser);
+		return \hash('md5', \json_encode($a).$this->getClass().$this->bNewUser);
 	}
 
 
-	public function setTimezone(){
-		$tz = $this->offsetGet('timezone');
+	/**
+	 * If user has valid value of 'tz'
+	 * then use it to set global time
+	 * This is the time that will be used
+	 * during the rest of the script execution
+	 *
+	 * @return object $this
+	 */
+	public function setTime(){
+		$tz = $this->offsetGet('tz');
 		if(!empty($tz)){
-			if (false === @date_default_timezone_set( $tz )) {
+			if (false === @\date_default_timezone_set( $tz )) {
 				d( 'Error: wrong value of timezone: '.$tz );
 			}
 		}
 
 		return $this;
+	}
+
+
+	/**
+	 * Setter for value of $tz (timezone)
+	 * it will first check to make
+	 * sure the $tz is a valid timezone name
+	 *
+	 * @param unknown_type $tz
+	 */
+	public function setTimezone($tz){
+		if(!\is_string($tz)){
+			throw new DevException('Param $tz must be string. Was: '.gettype($tz));
+		}
+
+		$currentTz = \date_default_timezone_get();
+		if (false !== @\date_default_timezone_set( $tz )) {
+			parent::offsetSet('tz', $tz);
+		}
+
+		@\date_default_timezone_set($currentTz);
+
+		return $this;
+	}
+
+
+	/**
+	 * Getter for value of 'tz' (timezone) value
+	 *
+	 * @return string valid value of Timezone name or string
+	 * if no value was previously set
+	 */
+	public function getTimezone(){
+		return $this->offsetGet('tz');
 	}
 
 
@@ -640,10 +608,21 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 		$role = $this->offsetGet('role');
 
 		if(('unactivated' === $role) || ('unactivated_external' === $role)){
-			$this->offsetSet('role', 'registered');
+			$this->setRoleId('registered');
 		}
 
 		return $this;
+	}
+
+
+	/**
+	 * Test to see if this user has permission
+	 *
+	 * @param string $permission
+	 * @return bool true if User has this permission, false otherwise
+	 */
+	public function isAllowed($permission){
+		return $this->getRegistry()->Acl->isAllowed($this->getRoleId(), null, $permission);
 	}
 
 
@@ -655,10 +634,14 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	 * @return object $this
 	 */
 	public function setReputation($iPoints){
+		if(!\is_numeric($iPoints)){
+			throw new DevException('value of $iPoints must be numeric, was: '.$iPoints);
+		}
+
 		$iRep = $this->offsetGet('i_rep');
 		$iNew = max(1, ($iRep + (int)$iPoints));
 
-		$this->offsetSet('i_rep', $iNew);
+		parent::offsetSet('i_rep', $iNew);
 
 		return $this;
 	}
@@ -667,7 +650,7 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	/**
 	 *
 	 * Get reputation score of user
-	 * 
+	 *
 	 * @return int reputation of user, with minimum of 1
 	 */
 	public function getReputation(){
@@ -676,14 +659,30 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 	}
 
 
+	/**
+	 * Get Location of user based on GeoIP data 
+	 * (or data
+	 * that user has entered in profile, which will
+	 * override the GeoIP data that we get during
+	 * the registration)
+	 * 
+	 * @return string
+	 */
 	public function getLocation(){
 		$country = $this->offsetGet('country');
 		$state = $this->offsetGet('state');
 		$city = $this->offsetGet('city');
+		$hasCity = false;
 
 		$ret = '';
-		if(!empty($city) && !empty($state)){
-			$ret .= $city.', '.$state;
+		
+		if(!empty($city)){
+			$hasCity = true;
+			$ret .= $city;
+		}
+		
+		if(!empty($state) && !\is_numeric($state)){
+			$ret .= ($hasCity) ? ', '.$state : $state;
 		}
 
 		if(!empty($country)){
@@ -711,10 +710,373 @@ class User extends MongoDoc implements Interfaces\RoleInterface, Interfaces\User
 		if((($now - $lastActive) > 300) && !$this->isGuest()){
 			d('updating i_lm_ts of user');
 			$this->offsetSet('i_lm_ts', $now);
-			$this->save();
 		}
 
 		return $this;
 	}
 
+
+	/**
+	 * Get user's age (in years)
+	 * at the time of this request
+	 *
+	 * @return string empty string if 'dob' value
+	 * is empty or string age in years
+	 *
+	 */
+	public function getAge(){
+		$dob = $this->offsetGet('dob');
+		if(empty($dob)){
+			return '';
+		}
+
+		$oDOB = new \DateTime($dob);
+		$oDiff = $oDOB->diff(new \DateTime(), true);
+
+		return $oDiff->format("%y");
+	}
+
+
+	/**
+	 * Get array of blogs
+	 *
+	 * @return array
+	 */
+	public function getTumblrBlogs(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['blogs'])){
+			return null;
+		}
+
+		return $a['blogs'];
+	}
+
+
+	/**
+	 * Set value of tumblr['blogs']
+	 *
+	 * @param array $blogs array of blogs
+	 *
+	 * @return object $this
+	 */
+	public function setTumblrBlogs(array $blogs){
+		$a = $this->offsetGet('tumblr');
+		if(!empty($a) && !empty($a['blogs'])){
+			$a['blogs'] = $blogs;
+			$this->offsetSet('tumblr', $a);
+		}
+
+		return $this;
+	}
+
+
+	/**
+	 * Get array of all user's blogs
+	 * @return mixed array of at least one blog | null
+	 * if user does not have any blogs (not a usual situation)
+	 *
+	 */
+	public function getTumblrToken(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['tokens'])){
+			return null;
+		}
+
+		return $a['tokens']['oauth_token'];
+	}
+
+
+	/**
+	 * Get oAuth sercret that we got for this user
+	 * @return string
+	 */
+	public function getTumblrSecret(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['tokens'])){
+			return null;
+		}
+
+		return $a['tokens']['oauth_token_secret'];
+	}
+
+
+	/**
+	 * Set the value of ['tumblr']['tokens'] to null
+	 * This removes both the token and token_secret
+	 * for the tumblr oauth credentials
+	 *
+	 * @return object $this
+	 */
+	public function revokeTumblrToken(){
+		$a = $this->offsetGet('tumblr');
+		if(!empty($a) && !empty($a['tokens'])){
+			$a['tokens'] = null;
+			$this->offsetSet('tumblr', $a);
+		}
+
+		return $this;
+	}
+
+
+	/**
+	 * Get html for the link to tumblr blog
+	 *
+	 * @return string html of link
+	 */
+	public function getTumblrBlogLink(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		$aBlog = $a['blogs'][0];
+		if(!empty($aBlog['url']) && !empty($aBlog['title'])){
+			$tpl = '<a href="%s" class="tmblr" rel="nofollow">%s</a>';
+
+			return sprintf($tpl, $aBlog['url'], $aBlog['title']);
+		}
+
+		return '';
+	}
+
+
+	/**
+	 * Get Title of "default" Tumblr Blog
+	 * Default blog is the one blog
+	 * that user connected to this site
+	 * If user has only one blog on Tumblr then
+	 * it's automatically is default blog
+	 *
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.TumblrUser::getTumblrBlogTitle()
+	 */
+	public function getTumblrBlogTitle(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		$aBlog = $a['blogs'][0];
+
+		return(!empty($a['blogs'][0]['title'])) ? $a['blogs'][0]['title'] : '';
+	}
+
+
+	/**
+	 * Get full url of the "default" Tumblr blog
+	 * Default blog is the one blog
+	 * that user connected to this site
+	 * If user has only one blog on Tumblr then
+	 * it's automatically is default blog
+	 *
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.TumblrUser::getTumblrBlogUrl()
+	 */
+	public function getTumblrBlogUrl(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		$aBlog = $a['blogs'][0];
+
+		return(!empty($a['blogs'][0]['url'])) ? $a['blogs'][0]['url'] : '';
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.TumblrUser::getTumblrBlogId()
+	 */
+	public function getTumblrBlogId(){
+		$a = $this->offsetGet('tumblr');
+		if(empty($a) || empty($a['blogs']) || empty($a['blogs'][0])){
+			throw new DevException('User does not have any blogs on Tumblr');
+		}
+
+		$blog = $a['blogs'][0];
+		if(!empty($blog['private-id'])){
+			return $blog['private-id'];
+		}
+
+		if(!empty($blog['name'])){
+			return $blog['name'].'.tumblr.com';
+		}
+
+		return null;
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::getBloggerToken()
+	 */
+	public function getBloggerToken(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['tokens'])){
+			return null;
+		}
+
+		return $a['tokens']['oauth_token'];
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::getBloggerSecret()
+	 */
+	public function getBloggerSecret(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['tokens'])){
+			return null;
+		}
+
+		return $a['tokens']['oauth_token_secret'];
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::revokeBloggerToken()
+	 */
+	public function revokeBloggerToken(){
+		$a = $this->offsetGet('blogger');
+		if(!empty($a) && !empty($a['tokens'])){
+			$a['tokens'] = null;
+			$this->offsetSet('blogger', $a);
+		}
+
+		return $this;
+	}
+
+
+	/**
+	 * Get html for the link to Blogger blog
+	 * @return string html of link
+	 */
+	public function getBloggerBlogLink(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		$aBlog = $a['blogs'][0];
+		if(!empty($aBlog['url']) && !empty($aBlog['title'])){
+			$tpl = '<a href="%s" class="blgr" rel="nofollow">%s</a>';
+
+			return sprintf($tpl, $aBlog['url'], $aBlog['title']);
+		}
+
+		return '';
+	}
+
+
+	/**
+	 * Get array of all user's blogs
+	 * @return mixed array of at least one blog | null
+	 * if user does not have any blogs (not a usual situation)
+	 *
+	 */
+	public function getBloggerBlogs(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['blogs'])){
+			return null;
+		}
+
+		return $a['blogs'];
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::getBloggerBlogTitle()
+	 */
+	public function getBloggerBlogTitle(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		return $a['blogs'][0]['title'];
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::getBloggerBlogUrl()
+	 */
+	public function getBloggerBlogUrl(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['blogs'])){
+			return '';
+		}
+
+		return $a['blogs'][0]['url'];
+	}
+
+
+	/**
+	 * @return string value to be used as '<blogid>' param
+	 * in WRITE API call
+	 *
+	 */
+	public function getBloggerBlogId(){
+		$a = $this->offsetGet('blogger');
+		if(empty($a) || empty($a['blogs']) || empty($a['blogs'][0])){
+			throw new DevException('User does not have any blogs on Blogger');
+		}
+
+		return $a['blogs'][0]['id'];
+	}
+
+
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.BloggerUser::setBloggerBlogs()
+	 */
+	public function setBloggerBlogs(array $blogs){
+		$a = $this->offsetGet('blogger');
+		if(!empty($a) && !empty($a['blogs'])){
+			$a['blogs'] = $blogs;
+			$this->offsetSet('blogger', $a);
+		}
+
+		return $this;
+	}
+
+
+	/**
+	 * Some keys should not be set directly
+	 * but instead use proper setter methods
+	 *
+	 * @todo must go over all classes and see
+	 * which classes set values directly using
+	 * ->offsetSet or as assignment
+	 * and add some of the more important
+	 * keys here. For example: language, locale,
+	 * ,username(maybe), pwd(maybe), email,
+	 * timezone should go through validation
+	 *
+	 * (non-PHPdoc)
+	 * @see ArrayObject::offsetSet()
+	 */
+	public function offsetSet($index, $newval){
+		switch($index){
+			case 'role':
+				$this->setRoleId($newval);
+				break;
+
+			case 'i_rep':
+				throw new DevException('value of i_rep cannot be set directly. Use setReputation() method');
+				break;
+
+			case 'tz':
+			case 'timezone':
+				$this->setTimezone($newval);
+				break;
+
+			default:
+				parent::offsetSet($index, $newval);
+		}
+	}
 }

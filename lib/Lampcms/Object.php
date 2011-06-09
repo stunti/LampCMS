@@ -52,7 +52,7 @@
 
 namespace Lampcms;
 
-const JS_MIN_ID = '04072011';
+const JS_MIN_ID = '05312011';
 
 const LF = "\n";
 const CR = "\r";
@@ -136,6 +136,29 @@ const PATH_WWW_IMG_MOBILE = '/w/img/tiny/';
 const DIR_XXX = 'xxx';
 
 /**
+ * If server does not have fastcgi_finish_request function
+ * then a special NO_FFR flag is defined
+ * in which case we execute this callable
+ * function now,
+ * otherwise defer execution as a shutdown function
+ *
+ * @param unknown_type $callable
+ *
+ */
+function runLater(\Closure $callable){
+	if(!is_callable($callable)){
+		throw new Exception('param passed to runLater must be a callable function. Was: '.\gettype($callable));
+	}
+
+	register_shutdown_function($callable);
+	/*if(defined('NO_FFR')){
+		$callable();
+	} else {
+		register_shutdown_function($callable);
+	}*/
+}
+
+/**
  * Array of stopwords
  * These words will be excluded
  * from tokenizer result
@@ -144,9 +167,11 @@ const DIR_XXX = 'xxx';
  */
 function getStopwords(){
 	return array(
-	"a","abst","adj","ah","am","an","and","are","aren","arent","as","at","b","be","but","by","c","ca","cant","co","com","d","did","didnt","do","dont","e","edu","eg","et","etc","ex","f","ff","for","g","go","he","hed","her","hes","hi","hid","him","his","i","id","ie","if","ill","im","in","inc","is","isnt","it","itd","itll","its","ive","j","k","kg","km","l","lest","lets","ll","ltd","m","me","mg","ml","mr","mrs","n","na","nay","nd","no","non","nor","nos","o","of","off","oh","ok","okay","on","or","ord","p","pp","put","q","qv","r","rd","re","s","sec","shes","so","t","th","that","thatll","thats","thatve","the","them","then","thence","thereve","theyd","theyll","theyre","theyve","this","those","thou","though","thoughh","throug","thru","thus","til","tip","to","too","ts","two","u","un","up","ups","us","v","ve","via","viz","vol","vols","vs","w","wasnt","we","wed","were","weve","wont","wouldnt","www","x","y","youd","z"
+	"a","ah","an","and","are","aren","arent","as","at","b","be","but","by","c","cant","co","d","did","didnt","do","dont","e","eg","et","f","ff","for","g","go","he","hes","hi","i","if","ill","in","is","isnt","it","itd","its","ive","j","k","l","ll","m","me","mr","mrs","n","na","nd","no","o","of","oh","or","p","pp","q","qv","r","rd","re","s","shes","so","t","th","that","thatll","thats","thatve","the","them","theyd","this","those","til","to","too","ts","u","un","v","ve","vs","w","wasnt","we","were","wont","wouldnt","x","y","z"
 	);
 }
+
+
 /**
  * Array of reserved accounts
  * User will not be allowed to register with
@@ -270,10 +295,10 @@ class LampcmsObject implements Interfaces\LampcmsObject
 	 * @param Registry $oRegistry
 	 */
 	public static function factory(Registry $oRegistry){
-
 		return new static($oRegistry);
 	}
 
+	
 	/**
 	 * Get unique hash code for the object
 	 * This code uniquely identifies an object,
@@ -283,27 +308,35 @@ class LampcmsObject implements Interfaces\LampcmsObject
 	 *
 	 * @return string
 	 */
-	public function hashCode()
-	{
+	public function hashCode(){
 		return spl_object_hash($this);
 	}
 
+	
 	/**
 	 * Getter of the class name
 	 * @return string the class name of this object
 	 */
-	public function getClass()
-	{
+	public function getClass(){
 		return get_class($this);
 	}
 
+	
 	/**
 	 * Outputs the name and uniqe code of this object
 	 * @return string
 	 */
-	public function __toString()
-	{
+	public function __toString(){
 		return 'object of type: '.$this->getClass().' hashCode: '.$this->hashCode();
+	}
+	
+	/**
+	 * Getter for $this->oRegistry
+	 * 
+	 * @return object of type Registry
+	 */
+	public function getRegistry(){
+		return $this->oRegistry;
 	}
 
 }
@@ -320,16 +353,15 @@ class LampcmsObject implements Interfaces\LampcmsObject
 class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\LampcmsObject
 {
 
-	public function __isset($name)
-	{
+	public function __isset($name){
 		return $this->offsetExists($name);
 	}
 
-	public function __unset($name)
-	{
+	public function __unset($name){
 		return $this->offsetUnset($name);
 	}
 
+	
 	/**
 	 * Some functions must just return
 	 * result of calling a functions
@@ -348,8 +380,7 @@ class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\Lam
 	 * @param $arguments
 	 * @return unknown_type
 	 */
-	public function __call($name, $arguments)
-	{
+	public function __call($name, $arguments){
 		/**
 		 * These functions don't return anything
 		 * they modify current array
@@ -367,19 +398,28 @@ class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\Lam
 
 	}
 
-	public function serialize()
-	{
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see ArrayObject::serialize()
+	 */
+	public function serialize(){
 		$a = $this->getArrayCopy();
 
 		return serialize($a);
 	}
 
-	public function unserialize($serialized)
-	{
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see ArrayObject::unserialize()
+	 */
+	public function unserialize($serialized){
 		$a = unserialize($serialized);
 		$this->exchangeArray($a);
 	}
 
+	
 	/**
 	 * Merges the input array with existing
 	 * array. But instead of using array_merge,
@@ -394,8 +434,7 @@ class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\Lam
 	 * @param array $a
 	 * @return object $this
 	 */
-	public function addArray(array $a)
-	{
+	public function addArray(array $a){
 		foreach($a as $key => $val){
 			$this->offsetSet($key, $val);
 		}
@@ -412,20 +451,18 @@ class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\Lam
 	 *
 	 * @throws InvalidArgumentException if argument is not an array and not ArrayObject object
 	 */
-	public function getMerged($arr)
-	{
+	public function getMerged($arr){
 		if (is_array($arr)) {
-			return array_merge($this->getArrayCopy(), $arr);
-		} elseif (is_object($arr)) {
+			return \array_merge($this->getArrayCopy(), $arr);
+		} elseif (\is_object($arr)) {
 			if ($arr instanceof ArrayObject) {
-				return array_merge($this->getArrayCopy(), $arr->getArrayCopy());
+				return \array_merge($this->getArrayCopy(), $arr->getArrayCopy());
 			}
 
 			throw new \InvalidArgumentException('getMerged argumet object MUST be of type ArrayObject');
 		}
 
 		throw new \InvalidArgumentException('getMerged argument can only be array or object of type ArrayObject');
-
 	}
 
 
@@ -438,23 +475,25 @@ class LampcmsArray extends \ArrayObject implements \Serializable, Interfaces\Lam
 	 *
 	 * @return string
 	 */
-	public function hashCode()
-	{
+	public function hashCode(){
 		return spl_object_hash($this);
 	}
 
+	
 	/**
 	 * Getter of the class name
 	 * @return string the class name of this object
 	 */
-	public function getClass()
-	{
+	public function getClass(){
 		return get_class($this);
 	}
 
 
-	public function __toString()
-	{
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms\Interfaces.LampcmsObject::__toString()
+	 */
+	public function __toString(){
 		return 'object of type: '.$this->getClass().' hashCode: '.$this->hashCode().' with array: '.print_r($this->getArrayCopy(), true);
 	}
 
@@ -471,12 +510,19 @@ class ArrayDefaults extends LampcmsArray
 
 	protected $defaultValue = self::DEFAULT_VAL;
 
-	public function __construct(array $a = array(), $defaultVal = null)
-	{
+	/**
+	 * Constructor
+	 * 
+	 * @param array $a underlying array represented by this object
+	 * @param string $defaultVal value to return in case
+	 * the element does not exist in array
+	 */
+	public function __construct(array $a = array(), $defaultVal = null){
 		parent::__construct($a);
 		$this->defaultValue = $defaultVal;
 	}
 
+	
 	/**
 	 * Redefine offsetExists to allways return true
 	 * this way a request for $obj['blabla']
@@ -487,30 +533,42 @@ class ArrayDefaults extends LampcmsArray
 	 *
 	 * @return true
 	 */
-	public function offsetExists($name)
-	{
+	public function offsetExists($name){
 		return true;
 	}
 
-	public function __isset($name)
-	{
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsArray::__isset()
+	 */
+	public function __isset($name){
 		return $this->checkOffset($name);
 	}
 
+	
 	/**
 	 * This checks wheather index really exists
 	 * since we can no longer rely on the
 	 * offsetExists() in this object,
 	 * we are asking a parent object
+	 * 
+	 * It ONLY works properly
+	 * with this object and does not work
+	 * in sub-class because in sub-class parent
+	 * becomes THIS class and calling offsetExists
+	 * on THIS class always returns true!
+	 * 
+	 * Ideally this function should be eliminated
 	 *
 	 * @param string $name
 	 * @return bool
 	 */
-	public function checkOffset($name)
-	{
+	public final function checkOffset($name){
 		return parent::offsetExists($name);
 	}
 
+	
 	/**
 	 * Redefine offsetGet to return defaultValue
 	 * if index $name does not actually exists.
@@ -518,13 +576,10 @@ class ArrayDefaults extends LampcmsArray
 	 * the value of $this->defaultValue
 	 * instead of raising error
 	 *
-	 *
-	 *
 	 * @param string $name
 	 * @return unknown
 	 */
-	public function offsetGet($name)
-	{
+	public function offsetGet($name){
 		if (parent::offsetExists($name)) {
 
 			return parent::offsetGet($name);
@@ -533,19 +588,20 @@ class ArrayDefaults extends LampcmsArray
 		return $this->defaultValue;
 	}
 
+	
 	/**
 	 * Setter for $this->defaultValue
 	 *
 	 * @param mixed $val
 	 * @return object $this
 	 */
-	public function setDefaultValue($val)
-	{
+	public function setDefaultValue($val){
 		$this->defaultValue = $val;
 
 		return $this;
 	}
 
+	
 	/**
 	 * Getter method for $this->defaultValue
 	 * this is not very usefull, usually only used
@@ -554,51 +610,24 @@ class ArrayDefaults extends LampcmsArray
 	 *
 	 * @return value of $this->defaultValue
 	 */
-	public function getDefaultValue()
-	{
+	public function getDefaultValue(){
 		return $this->defaultValue;
 	}
 
+	
 	/**
 	 * Resets the value of $this->defaultValue
 	 * to value of DEFAULT_VAL constant
 	 *
 	 * @return object $this
 	 */
-	public function resetDefaultValue()
-	{
+	public function resetDefaultValue(){
 		$this->defaultValue = self::DEFAULT_VAL;
 
 		return $this;
 	}
 
-	/**
-	 * If the key $key does not actually exists in
-	 * the array, then return the value passed as
-	 * second argument , if second param is not given ,then returns
-	 * value of $key
-	 *
-	 * otherwise return the value of $key
-	 *
-	 * @param string $key
-	 * @param mixed $default
-	 * @return mixed
-	 */
-	public function getFallback($key, $default = null)
-	{
-		if (parent::offsetExists($key)) {
-
-			return parent::offsetGet($key);
-		}
-
-		return ( null !== $default) ? $default : $key;
-	}
-
-	public function getFallbackLc($key, $default = null)
-	{
-		return $this->getFallback(strtolower($key), $default);
-	}
-
+	
 	/**
 	 * This method lets you get undefined array keys as
 	 * object properties
@@ -610,23 +639,29 @@ class ArrayDefaults extends LampcmsArray
 	 * @param string $name
 	 * @return mixed
 	 */
-	public function __get($name)
-	{
+	public function __get($name){
 		return $this->offsetGet($name);
 	}
 
 
-	public function serialize()
-	{
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsArray::serialize()
+	 */
+	public function serialize(){
 		return serialize(array('array' => $this->getArrayCopy(), 'default' => $this->defaultValue));
 	}
 
-	public function unserialize($serialized)
-	{
+	
+	/**
+	 * (non-PHPdoc)
+	 * @see Lampcms.LampcmsArray::unserialize()
+	 */
+	public function unserialize($serialized){
 		$a = unserialize($serialized);
 		$this->exchangeArray($a['array']);
 		$this->defaultValue = $a['default'];
 	}
 
-} // ArrayDefaults
+}
 

@@ -59,7 +59,13 @@ use \Lampcms\Question;
 use \Lampcms\Request;
 use \Lampcms\Mailer;
 
-
+/**
+ * Controller for processing the
+ * "Flag item as inappropriate"
+ * 
+ * @author Dmitri Snytkine
+ *
+ */
 class Flagger extends WebPage
 {
 
@@ -149,8 +155,7 @@ class Flagger extends WebPage
 	 *
 	 * @return object $this
 	 */
-	protected function updateResource()
-	{
+	protected function updateResource(){
 		$coll = $this->oRegistry->Mongo->getCollection($this->collection);
 		$coll->update(array("_id" => (int)$this->oRequest['rid']), array('$inc' => array("i_flags" => 1)), array("fsync" => true));
 
@@ -197,7 +202,7 @@ class Flagger extends WebPage
 		'rtype' => $this->oRequest['rtype'],
 		'i_uid' => $this->oRegistry->Viewer->getUid(),
 		'username' => $this->oRegistry->Viewer->getDisplayName(),
-		'note' => $this->oRequest['note']
+		'note' => $this->oRequest->getUTF8('note')->stripTags()->valueOf()
 		);
 
 		$coll = $this->oRegistry->Mongo->REPORTED_ITEMS;
@@ -261,15 +266,6 @@ class Flagger extends WebPage
 			
 			d('aTo: '.print_r($aTo, 1));
 			$Mailer->mail($aTo, $subject, $body);
-			/*register_shutdown_function(function() use ($cur, $Mailer, $subject, $body){
-				try{
-					foreach($cur as $row){
-						$Mailer->mail($row['email'], $subject, $body);
-					}
-				} catch (\Exception $e){
-					e('Unable to send email to moderator: '.$e->getMessage());
-				}
-			});*/
 		}
 
 		return $this;

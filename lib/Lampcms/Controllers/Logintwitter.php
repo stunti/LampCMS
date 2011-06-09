@@ -77,7 +77,6 @@ class Logintwitter extends WebPage
 
 	const AUTHORIZE_URL = 'https://api.twitter.com/oauth/authorize';
 
-	protected $aAllowedVars = array('oauth_token');
 
 	/**
 	 * Array of data returned from Twitter
@@ -95,22 +94,15 @@ class Logintwitter extends WebPage
 	 */
 	protected $oAuth;
 
-	/**
-	 * If user with the sid cookie already exists
-	 * then we will create another record
-	 * in the JOINT_ACCOUNT table
-	 * this will be just for our own statistics and refs
-	 * it holds records of account_a to account_b
-	 * If during registration we detect by using sid cookie
-	 * that user was already registered (but currently logged out)
-	 * then we will create a record of this fact for our own references
-	 * and then we will create new sid cookie and send it to user
-	 * @var int
-	 */
-	protected $existingUidBySid;
-
 	protected $bInitPageDoc = false;
 
+	/**
+	 * Configuration of Twitter API
+	 * this is array of values TWITTER section
+	 * in !config.ini
+	 *
+	 * @var array
+	 */
 	protected $aTW = array();
 
 
@@ -136,6 +128,17 @@ class Logintwitter extends WebPage
 	 */
 	protected $oUser;
 
+
+	/**
+	 * Flag indicates that this is the
+	 * request to connect Twitter account
+	 * with existing user account.
+	 *
+	 * @var bool
+	 */
+	protected $bConnect = false;
+
+
 	/**
 	 * The main purpose of this class is to
 	 * generate the oAuth token
@@ -146,18 +149,27 @@ class Logintwitter extends WebPage
 	 *
 	 * @see classes/WebPage#main()
 	 */
-	protected function main()
-	{
+	protected function main(){
+
+		if(!extension_loaded('oauth')){
+			throw new \Lampcms\Exception('Unable to use Twitter API because OAuth extension is not available');
+		}
 
 		/**
-		 * In case user is already logged in we will output
-		 * the close window HTML and end the process
-		 * This is to prevent crackers from continuesly using this
-		 * page to bug down the server
+		 * If user is logged in then this is
+		 * a request to connect Twitter Account
+		 * with existing account.
+		 *
+		 * @todo check that user does not already have
+		 * Twitter credentials and if yes then call
+		 * closeWindows as it would indicate that user
+		 * is already connected with Twitter
 		 */
 		if($this->isLoggedIn()){
-			return $this->closeWindow();
+			$this->bConnect = true;
 		}
+
+		d('$this->bConnect: '.$this->bConnect);
 
 		$this->aTW = $this->oRegistry->Ini['TWITTER'];
 
@@ -176,14 +188,10 @@ class Logintwitter extends WebPage
 		 * in session and redirect to twitter authorization page
 		 */
 		if(empty($_SESSION['oauth']) || empty($this->oRequest['oauth_token'])){
-
 			$this->startOauthDance();
-
 		} else {
 			$this->finishOauthDance();
-
 		}
-
 	}
 
 
@@ -196,14 +204,14 @@ class Logintwitter extends WebPage
 	 * @throws Exception in case something goes wrong during
 	 * this stage
 	 */
-	protected function startOauthDance()
-	{
+	protected function startOauthDance(){
+
 		try {
 			// State 0 - Generate request token and redirect user to Twitter to authorize
 			$_SESSION['oauth'] = $this->oAuth->getRequestToken(self::REQUEST_TOKEN_URL);
 
 			d('$_SESSION[\'oauth\']: '.print_r($_SESSION['oauth'], 1));
-			if(!empty($_SESSION['oauth'])){
+			if(!empty($_SESSION['oauth']) && !empty($_SESSION['oauth']['oauth_token'])){
 
 				/**
 				 * A more advanced way is to NOT use Location header
@@ -241,8 +249,8 @@ class Logintwitter extends WebPage
 	 *
 	 * @throws Exception in case something goes wrong with oAuth class
 	 */
-	protected function finishOauthDance()
-	{
+	protected function finishOauthDance(){
+
 		try {
 			/**
 			 * This is a callback (redirected back from twitter page
@@ -253,9 +261,13 @@ class Logintwitter extends WebPage
 			 * send cookie to remember user
 			 * and then send out HTML with js instruction to close the popup window
 			 */
-			d('Looks like we are at step 2 of authentication');
+			d('Looks like we are at step 2 of authentication. Request: '.print_r($_REQUEST, 1));
 
 			// State 1 - Handle callback from Twitter and get and store an access token
+			/**
+			 * @todo check first to make sure we do have oauth_token
+			 * on REQUEST, else close the window
+			 */
 			$this->oAuth->setToken($this->oRequest['oauth_token'], $_SESSION['oauth']['oauth_token_secret']);
 			$aAccessToken = $this->oAuth->getAccessToken(self::ACCESS_TOKEN_URL);
 			d('$aAccessToken: '.print_r($aAccessToken, 1));
@@ -282,11 +294,15 @@ class Logintwitter extends WebPage
 			$this->oAuth->setToken($aAccessToken['oauth_token'], $aAccessToken['oauth_token_secret']);
 			$this->oAuth->fetch('http://api.twitter.com/1/account/verify_credentials.json');
 
-			$this->aUserData = json_decode($this->oAuth->getLastResponse(), 1);
+			if(false === $this->aUserData = \json_decode($this->oAuth->getLastResponse(), true)){
+				e('Unable to json_decode data returned by Twitter API: '. $this->oAuth->getLastResponse());
+				$this->closeWindow();
+				exit;
+			}
+
 			if(isset($this->aUserData['status'])){
 				unset($this->aUserData['status']);
 			}
-
 
 			d('json: '.var_export($this->aUserData, true));
 
@@ -299,11 +315,21 @@ class Logintwitter extends WebPage
 			$this->aUserData['_id'] = (!empty($this->aUserData['id_str'])) ? $this->aUserData['id_str'] : (string)$this->aUserData['id'];
 			unset($this->aUserData['user_id']);
 
+
 			$this->updateTwitterUserRecord();
 
 			$this->createOrUpdate();
-			Cookie::sendLoginCookie($this->oRegistry->Viewer->getUid(), $this->oUser->rs);
-			$this->closeWindow(); //$this->makeLoginArray()
+			if(!$this->bConnect){
+				Cookie::sendLoginCookie($this->oRegistry->Viewer->getUid(), $this->oUser->rs);
+			} else {
+				/**
+				 * Set flag to session indicating that user just
+				 * connected Twitter Account
+				 */
+				$this->oRegistry->Viewer['b_tw'] = true;
+			}
+
+			$this->closeWindow();
 
 		} catch(\OAuthException $e) {
 			e('OAuthException: '.$e->getMessage().' '.print_r($e, 1));
@@ -334,17 +360,30 @@ class Logintwitter extends WebPage
 	 * If user not found, then create a record for
 	 * a new user, otherwise update record
 	 *
+	 * @todo special case if this is 'connect' type of action
+	 * where existing logged in user is adding twitter to his account
+	 * then we should delegate to connect() method which
+	 * does different things - adds twitter data to $this->oRegistry->Viewer
+	 * but also first checks if another user already has
+	 * this twitter account in which case must show error - cannot
+	 * use same Twitter account by different users
+	 *
 	 * @return object $this
 	 */
-	protected function createOrUpdate()
-	{
+	protected function createOrUpdate(){
 		$this->aUserData['utc_offset'] = (!empty($this->aUserData['utc_offset'])) ? $this->aUserData['utc_offset'] : Cookie::get('tzo', 0);
 
 		$tid = $this->aUserData['_id']; // it will be string!
 		d('$tid: '.$tid);
 		$aUser = $this->getUserByTid($tid);
 
-		if(!empty($aUser)){
+		if(!empty($this->bConnect)){
+			d('this is connect action');
+
+			$this->oUser = $this->oRegistry->Viewer;
+			$this->connect($tid);
+
+		} elseif(!empty($aUser)){
 			$this->oUser = $oUser = \Lampcms\UserTwitter::factory($this->oRegistry, $aUser);
 			$this->updateUser();
 		} else {
@@ -368,14 +407,58 @@ class Logintwitter extends WebPage
 
 		$this->updateLastLogin();
 
-		//exit('processed');
 
 		if($this->isNewAccount){
 			$this->postTweetStatus();
 		}
 
 		return $this;
+	}
 
+
+	/**
+	 * Add Twitter credentials to existing user
+	 *
+	 * @return $this
+	 */
+	protected function connect($tid){
+		$aUser = $this->getUserByTid($tid);
+		d('$aUser: '.print_r($aUser, 1));
+		if(!empty($aUser) && ($aUser['_id'] != $this->oUser->getUid())){
+
+			$name = '';
+			if(!empty($aUser['fn'])){
+				$name .= $aUser['fn'];
+			}
+
+			if(!empty($aUser['ln'])){
+				$name .= ' '.$aUser['fn'];
+			}
+			$trimmed = \trim($name);
+			$name = (!empty($trimmed)) ? \trim($name) : $aUser['username'];
+
+			/**
+			 * This error message will appear inside the
+			 * Small extra browser Window that Login with Twitter
+			 * opens
+			 *
+			 */
+			$err = '<div class="larger"><p>This Twitter account is already connected to
+			another registered user: <strong>' .$name. '</strong><br>
+			<br>
+			A Twitter account cannot be associated with more than one account on this site<br>
+			If you still want to connect Twitter account to this account you must use a different Twitter account</p>';
+			$err .= '<br><br>
+			<input type="button" class="btn-m" onClick="window.close();" value="&nbsp;OK&nbsp;">&nbsp;
+			<input type="button"  class="btn-m" onClick="window.close();" value="&nbsp;Close&nbsp;">
+			</div>';
+
+			$s = Responder::makeErrorPage($err);
+			echo ($s);
+			exit;
+		}
+
+		$this->updateUser(false);
 	}
 
 
@@ -388,7 +471,7 @@ class Logintwitter extends WebPage
 		d('sid is: '.$sid);
 
 		$aUser['username'] = $username;
-		$aUser['username_lc'] = strtolower($username);
+		$aUser['username_lc'] = \mb_strtolower($username, 'utf-8');
 		$aUser['fn'] = $this->aUserData['name'];
 		$aUser['avatar_external'] = $this->aUserData['profile_image_url'];
 
@@ -405,15 +488,17 @@ class Logintwitter extends WebPage
 		$aUser['i_rep'] = 1;
 
 		$oGeoData = $this->oRegistry->Cache->{sprintf('geo_%s', Request::getIP())};
-		$aProfile = array(
-		'cc' => $oGeoData->countryCode,
-		'country' => $oGeoData->countryName,
-		'state' => $oGeoData->region,
-		'city' => $oGeoData->city,
-		'zip' => $oGeoData->postalCode);
-		d('aProfile: '.print_r($aProfile, 1));
+		if(\is_object($oGeoData)){
+			$aProfile = array(
+			'cc' => $oGeoData->countryCode,
+			'country' => $oGeoData->countryName,
+			'state' => $oGeoData->region,
+			'city' => $oGeoData->city,
+			'zip' => $oGeoData->postalCode);
+			d('aProfile: '.print_r($aProfile, 1));
 
-		$aUser = array_merge($aUser, $aProfile);
+			$aUser = array_merge($aUser, $aProfile);
+		}
 
 		if(!empty($this->aUserData['url'])){
 			$aUser['url'] = $this->aUserData['url'];
@@ -455,12 +540,19 @@ class Logintwitter extends WebPage
 	 * This means we found record for existing user by twitter uid
 	 *
 	 */
-	protected function updateUser(){
-
+	protected function updateUser($bUpdateAvatar = true){
+		d('adding Twitter credentials to User object');
 		$this->oUser['oauth_token'] = $this->aUserData['oauth_token'];
 		$this->oUser['oauth_token_secret'] = $this->aUserData['oauth_token_secret'];
 		$this->oUser['twitter_uid'] = $this->aUserData['_id'];
-		$this->oUser['avatar_external'] = $this->aUserData['profile_image_url'];
+		if(!empty($this->aUserData['screen_name'])){
+			$this->oUser['twtr_username'] = $this->aUserData['screen_name'];
+		}
+
+		$avatarTwitter = $this->oUser['avatar_external'];
+		if(empty($avatarTwitter)){
+			$this->oUser['avatar_external'] = $this->aUserData['profile_image_url'];
+		}
 
 		$this->oUser->save();
 
@@ -476,49 +568,48 @@ class Logintwitter extends WebPage
 	 * the person to follow
 	 * our site's account
 	 */
-	protected function postTweetStatus()
-	{
+	protected function postTweetStatus(){
 
-		return $this;
+		//return $this;
 
 		$sToFollow = $this->aTW['TWITTER_USERNAME'];
 		$follow = (!empty($sToFollow)) ? ' #follow @'.$sToFollow : '';
 		$siteName = $this->oRegistry->Ini->SITE_TITLE;
-		$stuff = $this->oRegistry->Ini->SITE_URL.$follow;
+		$ourTwitterUsername = $this->oRegistry->Ini->SITE_URL.$follow;
 
 		$oTwitter = new Twitter($this->oRegistry);
 
-		register_shutdown_function(function() use ($oTwitter, $siteName, $stuff){
-			try{
-				$oTwitter->followUser();
+		if(!empty($ourTwitterUsername)){
+			register_shutdown_function(function() use ($oTwitter, $siteName, $ourTwitterUsername){
+				try{
+					$oTwitter->followUser();
 
-			} catch (\Lampcms\TwitterException $e){
-				$message = 'Error in: '.$e->getFile(). ' line: '.$e->getLine().' message: '.$e->getMessage();
-				d($message);
-			}
+				} catch (\Lampcms\TwitterException $e){
+					$message = 'Error in: '.$e->getFile(). ' line: '.$e->getLine().' message: '.$e->getMessage();
+					//d($message);
+				}
 
-			try{
-				$oTwitter->postMessage('I Joined '.$siteName. ' '.$stuff);
+				/*try{
+				 $oTwitter->postMessage('I Joined '.$siteName. ' '.$stuff);
 
-			} catch (\Lampcms\TwitterException $e){
-				$message = 'Exception in: '.$e->getFile(). ' line: '.$e->getLine().' message: '.$e->getMessage();
-				e($message);
-			}
-		});
+				 } catch (\Lampcms\TwitterException $e){
+				 $message = 'Exception in: '.$e->getFile(). ' line: '.$e->getLine().' message: '.$e->getMessage();
+
+				 }*/
+			});
+		}
 
 		return $this;
 	}
 
 
-
 	/**
-	 * Create a new record in USERS_GFC table
+	 * Create a new record in USERS_TWITTER table
 	 * or update an existing record
 	 *
 	 * @param unknown_type $isUpdate
 	 */
-	protected function updateTwitterUserRecord()
-	{
+	protected function updateTwitterUserRecord(){
 
 		$this->oRegistry->Mongo->USERS_TWITTER->save($this->aUserData);
 
@@ -534,8 +625,8 @@ class Logintwitter extends WebPage
 	 * @return mixed array or null
 	 *
 	 */
-	protected function getUserByTid($tid)
-	{
+	protected function getUserByTid($tid){
+
 		$coll = $this->oRegistry->Mongo->USERS;
 		$coll->ensureIndex(array('twitter_uid' => 1));
 
@@ -546,18 +637,27 @@ class Logintwitter extends WebPage
 
 
 	/**
-	 * Return html that contains JS window.close code and nothing else
+	 * Return html that contains JS window.close
+	 * code and nothing else
+	 *
+	 * @todo instead of just closing window
+	 * can show a small form with pre-populated
+	 * text to be posted to Twitter,
+	 * for example "I just joined SITE_NAME, awesome site
+	 * + link +
+	 *
+	 * And there will be 2 buttons Submit and Cancel
+	 * Cancel will close window
 	 *
 	 * @return unknown_type
 	 */
-	protected function closeWindow(array $a = array())
-	{
+	protected function closeWindow(array $a = array()){
 		d('cp a: '.print_r($a, 1));
 		$js = '';
 		/*if(!empty($a)){
-			$o = json_encode($a);
-			$js = 'window.opener.oSL.processLogin('.$o.')';
-			}*/
+		 $o = json_encode($a);
+		 $js = 'window.opener.oSL.processLogin('.$o.')';
+		 }*/
 
 		$tpl = '
 		var myclose = function(){
@@ -565,12 +665,13 @@ class Logintwitter extends WebPage
 		}
 		if(window.opener){
 		%s
-		setTimeout(myclose, 500); // give opener window time to process login and cancell intervals
+		setTimeout(myclose, 300); // give opener window time to process login and cancell intervals
 		}else{
-			alert("not a popup window")
+			alert("not a popup window or opener window gone away");
 		}';
 		d('cp');
-		$script = sprintf($tpl, $js);
+
+		$script = \sprintf($tpl, $js);
 
 		$s = Responder::PAGE_OPEN. Responder::JS_OPEN.
 		$script.
@@ -594,8 +695,8 @@ class Logintwitter extends WebPage
 	 * @param string $url of Twitter oauth, including request token
 	 * @return void
 	 */
-	protected function redirectToTwitter($url)
-	{
+	protected function redirectToTwitter($url){
+		d('twitter redirect url: '.$url);
 		/**
 		 * @todo translate this string
 		 *
@@ -621,6 +722,8 @@ class Logintwitter extends WebPage
 		'<div class="centered"><a href="'.$url.'">If you are not redirected in 2 seconds, click here to authenticate with Twitter</a></div>'.
 		Responder::PAGE_CLOSE;
 
+		d('exising with this $s: '.$s);
+
 		exit($s);
 	}
 
@@ -639,8 +742,7 @@ class Logintwitter extends WebPage
 	 * be used as our own username
 	 *
 	 */
-	protected function makeUsername()
-	{
+	protected function makeUsername(){
 
 		$res = $this->oRegistry->Mongo->USERS->findOne(array('twitter_uid' => $this->aUserData['_id']));
 
@@ -650,6 +752,5 @@ class Logintwitter extends WebPage
 		return $ret;
 
 	}
-
 
 }

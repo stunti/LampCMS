@@ -66,18 +66,30 @@
  * 
  */
 
-if (top !== self) {
+/*if (top !== self) {
 	alert('The URL ' + self.location.href
 			+ ' cannot be viewed inside a frame.  You will be redirected.');
 	top.location.href = self.location.href;
-}
+}*/
 
 // include.js
 
 /**
  * 
  */
-
+var oSL = {
+	Regform : function(){}/*,
+	$D : YAHOO.util.Dom,
+	$C : YAHOO.util.Dom.getElementsByClassName, //
+	$CONN : YAHOO.util.Connect, //
+	$ : YAHOO.util.Dom.get, //
+	$LANG : YAHOO.lang, //
+	$COOKIE : YAHOO.util.Cookie, //
+	$J : YAHOO.lang.JSON, //
+	$W : YAHOO.widget, //
+	$L : YAHOO.log //
+*/
+};
 var $Y = YAHOO, //
 $D = YAHOO.util.Dom, //
 $C = $D.getElementsByClassName, //
@@ -87,16 +99,14 @@ $LANG = YAHOO.lang, //
 $COOKIE = YAHOO.util.Cookie, //
 $J = YAHOO.lang.JSON, //
 $W = YAHOO.widget, //
-$L = YAHOO.log, //
+$L = YAHOO.log;//
+
 LampcmsException = function(message, exceptionName) {
 	this.message = message;
 	this.name = exceptionName || "LampcmsException";
 };
 
-oSL = {
-	Regform : function() {
-	}
-};
+
 
 /**
  * This member handles the success response must determine what the result is
@@ -107,16 +117,16 @@ oAjaxObject = {
 	handleSuccess : function(o) {
 
 		var eLastDiv, json, sDoc, sTpl, errDiv, strMessage = '', //
-		eLogin = $("loginHead"), // was nbar
+		eLogin = $("loginHead"), 
 		strContentType = $LANG.trim(o.getResponseHeader["Content-Type"]);
-		// alert('ContentType: ' + strContentType);
+		
 		switch (strContentType) {
 		case 'text/json; charset=UTF-8':
 		case 'text/javascript; charset=UTF-8':
-			// alert('42 got something that looks like js');
+			
 			try {
 				json = $J.parse(o.responseText);
-				// alert(json);
+				
 			} catch (e) {
 				alert("Invalid json data in responceText " + $LANG.dump(e)
 						+ " strContentType " + strContentType + "<br>oRespnose: "
@@ -147,7 +157,9 @@ oAjaxObject = {
 				break;
 
 			}
-
+			
+			break;
+			
 		}
 	},
 	handleFailure : function(o) {
@@ -202,10 +214,10 @@ oSL = {
 		}
 
 		for (i = 0; i < aMeta.length; i += 1) {
-			if (aMeta[i].name && (aMeta[i].name == sMetaName)
+			if (aMeta[i].name && (aMeta[i].name === sMetaName)
 					&& aMeta[i].content) {
 				if (bAsElement) {
-					var el = aMeta[i];
+					el = aMeta[i];
 					$L('213 meta tag element ' + el);
 
 					return el;
@@ -292,7 +304,6 @@ oSL = {
 			}
 
 			el.appendChild(this.eLoader);
-
 		}
 	}, //
 	fRemoveIcon : function() {
@@ -340,10 +351,8 @@ oSL = {
 		$L('starting fColorChange for ' + el);
 		var myChange, curBg, myChangeBack, //              
 		element = (typeof el === 'string') ? $(el) : el, //
-		sToColor = (sToColor && typeof sToColor === 'string') ? sToColor
-				: '#FF0000', //
-		sFromColor = (sFromColor && typeof sFromColor === 'string') ? sFromColor
-				: '#FFFFFF';
+		sToColor = (sToColor && typeof sToColor === 'string') ? sToColor : '#FF0000', //
+		sFromColor = (sFromColor && typeof sFromColor === 'string') ? sFromColor : '#FFFFFF';
 
 		$L('element is: ' + element);
 
@@ -429,7 +438,7 @@ oSL = {
 		}
 
 	}
-}; //
+}; 
 
 /**
  * Dialog used for Tweeting from our site Should display modal window with a
@@ -546,57 +555,57 @@ oSL.tweet = (function() {
  */
 oSL.Regform = (function() {
 
-	var errDiv;
+	var errDiv, //
 
 	/**
 	 * Object of type Dialog which is a form inside of modal window
 	 */
-	var oDialog;
+	oDialog, //
 
 	/**
 	 * Associative array of dialog objects
 	 */
-	var aDialogs = {};
+	aDialogs = {}, //
 
 	/**
 	 * SimpleDialog prompt that will handle the "Cancel" button
 	 */
-	var oPrompt;
+	oPrompt, //
 
 	/**
 	 * Handle click on submit button "this" is object of oDialog Must disable
 	 * the submit button, start validation and actually submit the form and add
 	 * 'loading' icon or start email validation progress bar.
 	 */
-	var handleSubmit = function() {
+	handleSubmit = function() {
 		// alert('12 this is: ' + this);
 		// oSL.Regform.setButtonsDone();
 		this.submit();
-	};
+	}, //
 
 	/**
 	 * User clicked on Cancel button We must show prompt "Are you sure?" Yes/No
 	 * if Yes, then must set cookie 'skipReg' so that next time during the same
 	 * sessin we don't show this prompt again
 	 */
-	var handleCancel = function() {
+	handleCancel = function() {
 		$L('41 clicked on Cancel this is: ' + this);
 		oSL.Regform.getPrompt().show();
 
-	};
+	}, //
 	/**
 	 * Handles when user clicked on "Continue registration" button in the "Are
 	 * you sure?" Prompt
 	 */
-	var handleContinue = function() {
+	handleContinue = function() {
 		this.hide();
-	};
+	}, //
 
 	/**
 	 * Handle click on Exit registration button in the oPrompt prompt This will
 	 * close the prompt and will close the registration Dialog
 	 */
-	var handleExit = function() {
+	handleExit = function() {
 		var eAvatar = $('regext');
 		$L('handling exit');
 		this.hide();
@@ -609,7 +618,7 @@ oSL.Regform = (function() {
 				path : "/"
 			});
 		}
-	};
+	}, //
 	/**
 	 * Success only means that json data was received but it may still contain
 	 * error messages, This function will set error messages if there are any,
@@ -619,19 +628,19 @@ oSL.Regform = (function() {
 	 * will then probably have to destroy this panel and create a brand new one
 	 * for the newsletter selections
 	 */
-	var handleSuccess = function(o) {
+	handleSuccess = function(o) {
 		// $L('39 success ' + this, 'warn');
-		var oMyDialog = oSL.Regform.getInstance();
+		var response, i, aButtons, oMyDialog = oSL.Regform.getInstance();
 		//oSL.modal.hide();
 		oSL.Regform.enableButtons();
 		// oSL.Regform.getInstance().setBody('');
 		// oSL.Regform.getInstance().setFooter('<p>stuff and stuff</p>');
-		var aButtons = oSL.Regform.getInstance().getButtons();
-		for ( var i = 0; i < aButtons.length; i += 1) {
+		aButtons = oSL.Regform.getInstance().getButtons();
+		for ( i = 0; i < aButtons.length; i += 1) {
 			$L('button ' + i + ' is ' + aButtons[i]);
 		}
 
-		var response = o.responseText;
+		response = o.responseText;
 		try {
 			json = $J.parse(o.responseText);
 			// alert($LANG.dump(json));
@@ -640,7 +649,7 @@ oSL.Regform = (function() {
 				setError(json);
 				break;
 
-			case (json.hasOwnProperty('action') && (json.action == 'done')):
+			case (json.hasOwnProperty('action') && (json.action === 'done')):
 				oMyDialog.setHeader('Welcome!');
 				oMyDialog.setFooter('');
 				oMyDialog.setBody(json.body);
@@ -652,37 +661,35 @@ oSL.Regform = (function() {
 			alert("Invalid json data in responceText " + $LANG.dump(e) + "Respnose: " + $LANG.dump(o.responseText));
 		}
 
-	};
+	}, //
 
-	var handleFailure = function(o) {
+	handleFailure = function(o) {
 		//oSL.modal.hide();
 		oSL.Regform.enableButtons();
 		oSL.Regform.getInstance().setBody('<p>boo hoo, something is wrong</p>');
 		// setError('failed');
 		$L('47 fail ', 'warn');
-	};
+	}, //
 
-	var setError = function(oError) {
+	setError = function(oError) {
 
-		var errDiv = $('form_error');
-		// alert('errDiv: ' + errDiv);
-		var aInputs, message = oError.exception, //
-		oRegform = oSL.Regform.getInstance(); //
-		var myForm = oRegform.form;
-		// alert('setting error: ' + message);
-		// alert('cp 1825');
+		var i, errDiv = $('form_error'), //
+		
+		aInputs, message = oError.exception, //
+		oRegform = oSL.Regform.getInstance(), //
+		myForm = oRegform.form;
 		errDiv.innerHTML = message;
-		// alert('cp 1828');
+		
 		oSL.fColorChange(errDiv, '#FFFFFF', '#FF0000');
-		// alert('cp 1830');
+		
 		if (oError.type && ('LampcmsCaptchaLimitException' === oError.type)) {
 			$LANG.later(2000, oRegform, 'destroy');
 		}
-		// alert('cp 1832');
+	
 		if (oError.hasOwnProperty('fields')) {
-			// alert('cp 1834');
+			
 			aInputs = oError.fields;
-			for ( var i = 0; i < aInputs.length; i += 1) {
+			for ( i = 0; i < aInputs.length; i += 1) {
 				if (myForm.hasOwnProperty(aInputs[i])) {
 					myForm[aInputs[i]].style.backgroundColor = "#CCFFCC";
 				}
@@ -710,13 +717,12 @@ oSL.Regform = (function() {
 			}
 		}
 
-		// alert('cp 1864');
-	};
+	}, //
 	/**
 	 * Buttons to be used on the "Registration complete" panel These buttons
 	 * will replace the other buttons that were created initially on the Dialog
 	 */
-	var aButtonsDone = [ {
+	aButtonsDone = [ {
 		text : "<-- Return to page",
 		handler : function() {
 			alert('this is ' + this);
@@ -727,12 +733,12 @@ oSL.Regform = (function() {
 		handler : function() {
 			alert('go to profile');
 		}
-	} ];
+	} ], //
 
 	/**
 	 * Start the progress bar or progress icon
 	 */
-	var startProgress = function(o) {
+	startProgress = function(o) {
 		oSL.Regform.disableButtons();
 		//oSL.modal.show('Please wait...');
 	};
@@ -773,45 +779,45 @@ oSL.Regform = (function() {
 
 				oDialog.validate = function() {
 					// alert('validating');
-					var message, //
+					var at, checkEmail, tzo, message, //
 					aInputs = [], //
 					myForm = this.form, //
 					nd = new Date(), //
 					data = this.getData();
 					$L('data: ' + $LANG.dump(data));
-					var tzo = (0 - (nd.getTimezoneOffset() * 60)); // now its
+					tzo = (0 - (nd.getTimezoneOffset() * 60)); // now its
 					// number of
 					// seconds
 					if ((myForm.tzo) && (tzo)) {
 						myForm.tzo.value = tzo;
 					}
 
-					var checkEmail = function(str) {
-						var at = "@", dot = ".", lat = str.indexOf(at), lstr = str.length, ldot = str
-								.indexOf(dot);
+					checkEmail = function(str) {
+						var at = "@", //
+						dot = ".", //
+						lat = str.indexOf(at), //
+						lstr = str.length, //
+						ldot = str.indexOf(dot);
 
-						if (str.indexOf(at) == -1 || str.indexOf(at) == 0
-								|| str.indexOf(at) == lstr) {
-
-							return false;
-						}
-
-						if (str.indexOf(dot) == -1 || str.indexOf(dot) == 0
-								|| str.indexOf(dot) == lstr) {
+						if (str.indexOf(at) === -1 || str.indexOf(at) === 0 || str.indexOf(at) === lstr) {
 
 							return false;
 						}
 
-						if (str.substring(lat - 1, lat) == dot
-								|| str.substring(lat + 1, lat + 2) == dot) {
+						if (str.indexOf(dot) === -1 || str.indexOf(dot) === 0 || str.indexOf(dot) === lstr) {
 
 							return false;
 						}
 
-						if ((str.indexOf(at) == -1)
-								|| (str.indexOf(at, (lat + 1)) != -1)
-								|| (str.indexOf(dot, (lat + 2)) == -1)
-								|| (str.indexOf(" ") != -1)) {
+						if (str.substring(lat - 1, lat) === dot || str.substring(lat + 1, lat + 2) === dot) {
+
+							return false;
+						}
+
+						if ((str.indexOf(at) === -1)
+								|| (str.indexOf(at, (lat + 1)) !== -1)
+								|| (str.indexOf(dot, (lat + 2)) === -1)
+								|| (str.indexOf(" ") !== -1)) {
 
 							return false;
 						}
@@ -820,17 +826,17 @@ oSL.Regform = (function() {
 					};
 
 					switch (true) {
-					case (data.email == ""):
+					case (data.email === ""):
 						message = "Please enter email address";
 						aInputs.push('email');
 						break;
 
-					case (data.username == ""):
+					case (data.username === ""):
 						message = "Please enter Username";
 						aInputs.push('username');
 						break;
 
-					case (data.hasOwnProperty('private_key') && ("" == data.private_key)):
+					case (data.hasOwnProperty('private_key') && ("" === data.private_key)):
 						message = "Please enter the text from image";
 						aInputs.push('private_key');
 						break;
@@ -907,22 +913,22 @@ oSL.Regform = (function() {
 			return oPrompt;
 		},
 		disableButtons : function() {
-			var aBtns;
+			var i, aBtns;
 			$L('105 this is: ' + this, 'warn');
 			if (oDialog) {
 				aBtns = oDialog.getButtons();
-				for ( var i = 0; i < aBtns.length; i += 1) {
+				for ( i = 0; i < aBtns.length; i += 1) {
 					aBtns[i].set('disabled', true);
 				}
 
 			}
 		},
 		enableButtons : function() {
-			var aBtns;
+			var i, aBtns;
 			$L('105 this is: ' + this, 'warn');
 			if (oDialog) {
 				aBtns = oDialog.getButtons();
-				for ( var i = 0; i < aBtns.length; i += 1) {
+				for ( i = 0; i < aBtns.length; i += 1) {
 					aBtns[i].set('disabled', false);
 				}
 
@@ -953,11 +959,11 @@ oSL.Regform = (function() {
 YUI({
 	/*filter: 'raw',
 	gallery : 'gallery-2010.08.18-17-12'*/
-		}).use('node', 'dump', 'event', 'gallery-storage-lite', 'gallery-overlay-extras', 'dd-plugin', 'transition', 'yui2-container', 'yui2-editor', 'yui2-resize', 'yui2-animation', 'io-form', 'json', 'jsonp', 'imageloader', 'autocomplete', 'autocomplete-filters','autocomplete-highlighters', 'gallery-node-tokeninput', 'cookie', function(Y, result) {
+		}).use('node', 'dump', 'event', 'escape', 'gallery-storage-lite', 'gallery-overlay-extras', 'dd-plugin', 'anim', 'transition', 'yui2-container', 'yui2-editor', 'yui2-resize', 'io-form', 'json', 'jsonp', 'imageloader', 'autocomplete', 'autocomplete-filters','autocomplete-highlighters', 'gallery-node-tokeninput', 'cookie', function(Y, result) {
 	
 		
 	var YAHOO = Y.YUI2, //
-	TTT2 = document.getElementsByClassName('ttt2'),
+	TTT2 = Y.all('.ttt2'),
 	ttB, // Tooltip object
 	ttB2, // Tooltip2 object for all the "sort" tabs
 	oMetas = {}, // cache storage for resolved meta tags
@@ -965,8 +971,37 @@ YUI({
 	 * Storage for already resolved
 	 * answers tab
 	 */
-	loader,
-	oCTabs = {},
+	loader, //
+	getMeta, //
+	setMeta, //
+	getToken, //
+	ensureLogin, //
+	initTooltip, //
+	getEditedText, //
+	previewDiv, //
+	preview, //
+	MysubmitForm, //
+	showDeleteForm, //
+	showRetagForm, //
+	showShredForm, //
+	showCommentForm, //
+	addAdminControls, //
+	checkExtApi, //
+	showFlagForm, //
+	showCloseForm, //
+	codeButtons = {},
+	initAutoComplete, //
+	getAlerter, //
+	isModerator, //
+	isEditable, //
+	initFBSignup, //
+	Twitter, //
+	showEditComment, //
+	setToken, //
+	getReputation, //
+	isLoggedIn, //
+	getViewerId, //
+	oCTabs = {}, //
 	foldGroup, //
 	revealComments, //
 	dnd = false, //
@@ -974,11 +1009,15 @@ YUI({
 	write = function(str) {
 		var d = new Date();
 		str += ' :: ' + d.toTimeString();
-		if(res) {res.set('innerHTML', str);};
+		if(res) {
+			res.set('innerHTML', str);
+			}
 	}, //
 	saveToStorage = function() {
 		Y.StorageLite.on('storage-lite:ready', function() {
-			var html = editor.saveHTML();
+			var tags, html = editor.saveHTML();
+			saveTitle();
+			saveTags();
 			Y.StorageLite.setItem(getStorageKey(), html);
 			write('Draft saved..');
 		});
@@ -1059,7 +1098,7 @@ YUI({
 
 			return eForm.get('name');
 	}, //
-	initTagInput = function(){
+	initTagInput = function(el){
 		/**
 		 * @todo
 		 * Use datasource instead to store key => array
@@ -1073,7 +1112,7 @@ YUI({
 		 * the url where to get array of data
 		 * if it does not exist.
 		 */
-		var input = Y.one("#id_tags");
+		var input = (el) ? el : Y.one("#id_tags");
 		if(input){
 			Y.log('got id_tags');
 			Y.one(input).plug(Y.Plugin.TokenInput, {delimiter:' '});
@@ -1104,15 +1143,214 @@ YUI({
 	 */
 	mmdDecode = function(s){
 		//Y.log('got string to decode: ' + s);
-		var ret, em = /(\<em>|\<\/em>)/g;
-		var bold = /(\<strong>|\<\/strong>)/g;
+		var bold, ret, em = /(\<em>|\<\/em>)/g;
+		bold = /(\<strong>|\<\/strong>)/g;
 		ret = s.replace(em, '_');
 		//Y.log('ret: ' + ret, 'warn');
 		ret = ret.replace(bold, '**');
 		
 		return ret;
 	},//
+	/**
+     * When user clicked in X icon
+     * in enter youtube url widget
+     * If still have placeholder
+     * and it is empty then remove it.
+     * 
+     * 
+     * OK
+     */
+    _handleWindowClose = function() {
+    	 // this isEditor
+        var el = this.currentElement[0];
+        el = new Y.Node(el);
+        if(el && el.hasClass('yui-media')){
+        	el.remove();        	
+        } 
+        /**
+         * Clear value of "yourube url" input text
+         */
+        Y.one("#embed_url").set('value', '');
+        //Y.detach('youtube|*');
+        Y.Event.purgeElement("#btn_addvideo");
+        this.nodeChange();
+    },
+    /**
+	 * parseUri JS v0.1, by Steven Levithan (http://badassery.blogspot.com)
+	 * Splits any well-formed URI into the following parts 
+	 * (all are optional)  
+	 * @return array of url parts
+	 */
+	parseUri = function(sourceUri){
+        var uriParts, i = 0, uri = {}, //
+        uriPartNames = ["source","protocol","authority","domain","port","path","directoryPath","fileName","query","anchor"];
+        
+        uriParts = new RegExp("^(?:([^:/?#.]+):)?(?://)?(([^:/?#]*)(?::(\\d*))?)?((/(?:[^?#](?![^?#/]*\\.[^?#/.]+(?:[\\?#]|$)))*/?)?([^?#/]*))?(?:\\?([^#]*))?(?:#(.*))?").exec(sourceUri);
+        
+        for(i = 0; i < 10; i++){
+            uri[uriPartNames[i]] = (uriParts[i] ? uriParts[i] : "");
+        }
+        
+        // Always end directoryPath with a trailing backslash if a path was present in the source URI
+        // Note that a trailing backslash is NOT automatically inserted within or appended to the "path" key
+        if(uri.directoryPath.length > 0){
+            uri.directoryPath = uri.directoryPath.replace(/\/?$/, "/");
+        }
+        
+        return uri;
+    },
+    /**
+     * Extract value of video ID from youtube url string
+     * url is from the Youtube "Share" button
+     * it may be in different formats - thanks Youtube
+     */
+    getYTVidId = function(url){
+    	var myID, getID, path, a = parseUri(url),//
+    	re = /(?:v=)([^&\?]*)(?:[&]*)/gi;
+    	path = a['path'];
+    	Y.log('1186 path: ' + path);
+    	if(path.length < 2 || (-1 === path.indexOf('/'))){
+    		return false;
+    	}
+    	
+    	path = path.substr(1);
+    	Y.log('1192 path: ' + path);
+    	/**
+    	 * Now path can be: 'watch' = old url, must extract
+    	 * from query string v=-Tb5w0rtRcA
+    	 * OR it will be actual video ID
+    	 * but ONLY if not contains ? or &
+    	 */
+    	
+    	if('watch' !== path){
+    		if(/(\?|&)/.test(path)){ 	  
+    			Y.log('path contains &?');
+    			return false;
+    		}
+    		
+    		return path;
+    	} else if (!a.hasOwnProperty('query') || !a['query'] || a['query'].length < 3){
+    		Y.log('no "query"');
+    		return false;
+    	} else {
+    	
+	    	myID = re.exec(a['query']);
+	    	if(!myID || myID.length < 2 || myID[1].length < 1){
+	    		Y.log('1212 unable to extract');
+	    		return false;
+	    	}
+	    	
+	    		Y.log('1219 got vidID: ' + myID[1]);
+	    		return myID[1];
+    	}
+    },
+	/**
+	 * This function is fired when user
+	 * enters url of youtube video
+	 * in the add video EditorWindow - a small
+	 * modal window that appears when user clicks
+	 * on "Youtube" button on Editor.
+	 * This function precesses entered url of video,
+	 * extracts youtube video ID,
+	 * calls Youtube api, gets json back from API
+	 * and JSONP callback is executed which
+	 * replaces the placeholder div with
+	 * the new div and sticks thumbnail of video
+	 * linked to youtube video url (it will be handled
+	 * by onClick listener later, so clicking on it will
+	 * not take user to youtube but instead will replace thumb
+	 * with youtube player)
+	 * 
+	 */
+    parseYTInput = function() {
+
+                var url, apiURL = 'http://gdata.youtube.com/feeds/api/videos/{id}?v=2&alt=jsonc&callback=', //
+                handleJSONP, imgId, //
+                myinput1 = (Y.one("#embed_url")) ? Y.one("#embed_url").get('value') : null;
+                
+                handleJSONP = function(resp){
+                	var _doc = editor._getDoc(), el, html, imgId, title = '', desc = '', //
+                	err = 'Error returned from Youtube API. ',//
+        			//tpl = '<a href="http://youtu.be/{id}" class="ajax ytplay ttt" rev="{id}" title="{t}"><img src="/images/play.png" alt="Youtube video" width="44px" height="44px"/></a>';
+                 tpl = '<a href="http://youtu.be/{id}" class="ajax ytlink ttt" rev="{id}" title="{t}"><img src="http://i.ytimg.com/vi/{id}/default.jpg" alt="YouTube video" width="120px" height="90px"/></a>';
+                 tpl += '<a href="http://youtu.be/{id}" class="ajax ytplay ttt" rev="{id}" title="{t}"><img src="/images/play.png" alt="Play" width="44px" height="44px"/></a>';
+              	
+                	if(resp.error){
+                		if(resp['error']['message']){
+                			err += resp['error']['message'];
+                			alert(err);
+                			return;
+                		}
+                	} else {
+
+                		imgId = resp['data']['id'];
+                		if(resp['data'] && resp.data['title']){
+                			title = resp.data['title'];
+                		}
+                		if(resp['data'] && resp.data['description']){
+                			desc = resp.data['description'];
+                		}
+
+            			el = editor._swapEl(editor.currentElement[0], 'div', function(el) {
+
+                			//el.removeAttribute('style');
+                			// 
+                			//var bg = 'url( "http://i.ytimg.com/vi/'+imgId+'/default.jpg" )';
+                			//YAHOO.util.Dom.setStyle(el, 'background', bg);
+                			
+                			YAHOO.util.Dom.addClass(el, 'ajax');                	
+	                       	YAHOO.util.Dom.addClass(el, 'ytvideo');  
+	                       	YAHOO.util.Dom.setStyle(el, 'width', '120px');                        	
+	                       	YAHOO.util.Dom.setStyle(el, 'height', '90px');
+	                       	YAHOO.util.Dom.setStyle(el, 'min-height', '90px');                          	
+	                      	YAHOO.util.Dom.setStyle(el, 'margin-bottom', '5px');
+                			
+            			});
+            			             			
+            			html = Y.Lang.sub(tpl, {id: imgId, t: title});
+            			el.innerHTML = html;              			
+            			el.parentNode.appendChild(_doc.createElement("br"));
+                		editor.focus();
+                		editor.closeWindow();
+                		editor.get('panel').syncIframe(); 
+                	}
+                };
+                
+                if (myinput1 && '' !== myinput1) {
+             	   imgId = getYTVidId(myinput1);                	  
+             	   if(false === imgId){
+             		   	alert('URL of YouTube Video does not look correct');
+
+               		 	return;  
+             	   }
+                    
+                    url = Y.Lang.sub(apiURL, {id: imgId});
+                    url += '{callback}';
+                    Y.jsonp(url, handleJSONP);
+                }
+          
+    },
+    /**
+     * This function created EditorWindow
+     * and subscribes the button in that window
+     * to the onClick to execute parseYTInput
+     */
+    _handleMediaWindow = function() {
+     
+	     var btn, win = new YAHOO.widget.EditorWindow('insertmedia', {
+	         width: '415px'
+	     });
 	
+	     // el is first HTMLBody // when double clicked then HTMLDivElement yui-media
+	     win.setHeader('Add YouTube Video');
+	     this.openWindow(win);	
+	    // Y.on("youtube|click", parseYTInput, "#btn_addvideo");    
+	     Y.on("click", parseYTInput, "#btn_addvideo"); 
+	     this.on('afterOpenWindow', function() {
+	         this.get('panel').syncIframe();
+	     }, this, true);
+     
+    },
 	/**
 	 * MiniMarkDown decode
 	 * Turn html back into mini markdown
@@ -1122,15 +1360,14 @@ YUI({
 	 */
 	mmdEncode = function(s){
 		//Y.log('got string to decode: ' + s);
-		var ret, em = /(\<em>|\<\/em>)/g;
-		var bold = /(\<strong>|\<\/strong>)/g;
+		var bold, ret, em = /(\<em>|\<\/em>)/g;
+		bold = /(\<strong>|\<\/strong>)/g;
 		ret = s.replace(em, '_');
 		//Y.log('ret: ' + ret, 'warn');
 		ret = ret.replace('/(\*\*)([^\*]+)(\*\*)/g', '<strong>\\2</strong>');
 		
 		return ret;
 	},//
-
 	/**
 	 * Each question/answer is allowed up to 4 up and down votes, after that
 	 * user can click on votes buttons untill he's blue in the face, nothing
@@ -1149,14 +1386,13 @@ YUI({
 		} else {
 
 			oVotes[qid] = (oVotes[qid] + 1);
-			// //Y.log('new count: ' + oVotes[qid]);
+			
 		}
 
 		ret = (oVotes[qid] < 5);
-		// //Y.log('ret: ' + ret);
+		
 		return ret;
 	}, //
-
 	/**
 	 * Get timezone offset based on user clock
 	 * 
@@ -1169,40 +1405,14 @@ YUI({
 		return tzo;
 	}, //
 	
-
-	/**
-	 * Attach loading mask to node
-	 * and show it
-	 * Also add loadingMask object
-	 * to Y.LoadingMasks array
-	 * so that later we can access them
-	 * in order to hide masks
-	 */
-	/*_showLoading = function(node) {
-		var mymask;
-		node = (!node) ? Y.one('.gbox') : node;
-		mymask = node.plug(Y.LoadingMask, {
-			background : '#000',
-			strings : {
-				loading : 'Loading'
-			}
-		}).loadingmask;
-		if(!Y.loadingMasks){
-			Y.loadingMasks = [];
-		}
-		Y.loadingMasks.push(mymask);
-		mymask.show();
-		
-	}, *///
-	
-	showLoading = function(node){
-		var target, box, width, height;
+	showLoading = function(node, header){
+		var label = (header) ? header : 'Loading...';
 		if(!loader){			
 		loader = new Y.Overlay({
 			centered: true,
 			srcNode:"#loading",
-		    width:"90px",
-		    height:"60px",
+		    width:"100px",
+		    /*height:"60px",*/
 		    headerContent: "Loading...",
 		    bodyContent: "<img src='/images/loading-bar.gif'>",
 		    zIndex:1000
@@ -1211,6 +1421,8 @@ YUI({
 			loader.render();
 		}
 
+		loader.set('headerContent', label);
+		
 		if(node && (node instanceof Y.Node)){
 			loader.set("centered", node);
 		} else {
@@ -1220,26 +1432,9 @@ YUI({
 		loader.set("constrain", true);
 		loader.show();
 	},
-	 /**
-	  * Hide loading mask attached to node
-	  * if no node is provided then
-	  * hide all loadingMasks
-	  * 
-	  */
-	/*_hideLoading = function(node) {
-		var mymask;			
-		if (node && node.loadingmask) {
-			node.loadingmask.hide();
-		}
-		if(Y.loadingMasks){
-			while(Y.loadingMasks.length > 0){
-				mymask = Y.loadingMasks.pop();
-				mymask.hide();
-			}
-		}
-	},*/ //
 
 	hideLoading = function(node){
+		//return;
 		if(loader){
 			loader.hide();
 		}
@@ -1250,14 +1445,14 @@ YUI({
 	 */
 	initGfcSignup = function(){
 		if ((typeof google === 'undefined') || !google.friendconnect) {
-			//Y.log('No google or google.friendconnect', 'error');
+			
 			return;
 		}
-		//Y.log('have google and google.friendconnect');
+		
 		google.friendconnect.requestSignIn();
 		
 		return;
-	},
+	},//
 	/**
 	 * Record value of timestamp
 	 * when user views the question
@@ -1266,15 +1461,15 @@ YUI({
 	 * value is the timestamp extracted from etag meta
 	 */
 	storeReadEtag = function(){
-		var sKey, uid, etag = getMeta('etag'), qid, uid;
-		//Y.log('314 etag: ' + etag);
+		var sKey, uid, etag = getMeta('etag'), qid;
+		
 		if(etag){
 			qid = getMeta('qid');
 			if(qid){
 				uid = getViewerId();
 				etag = parseInt(etag, 10);
 				sKey = 'q-' + qid + '_' + uid;
-				//Y.log('adding etag ' + etag + ' for key ' + sKey );
+				
 				Y.StorageLite.setItem(sKey, etag);
 			}
 		}
@@ -1289,12 +1484,12 @@ YUI({
 	setReadLinks = function(){
 		var uid, eDivs, stored, oStorage = Y.StorageLite, eQlist = Y.one('.qlist');
 		if(!eQlist){
-			//Y.log('not on this page');
+			Y.log('1318 not on this page', 'warn');
 			return;
 		}
 		eDivs = eQlist.all('.qs');
-		if(!eDivs || eDivs.size() == 0){
-			//Y.log('no divs .qs');
+		if(!eDivs || eDivs.size() === 0){
+			Y.log('no divs .qs', 'warn');
 			return;
 		}
 		uid = getViewerId();
@@ -1302,21 +1497,13 @@ YUI({
 		eDivs.each(function(){
 			var qid, etag, stored, span;
 			qid = this.get('id');
-			//Y.log('qid: ' + qid);
-			etag = this.getAttribute('lampcms:i_etag');// + 0;
-			//Y.log('etag: ' + etag);			
-			etag = parseInt(etag, 10);
-			//Y.log('etag of item on page: ' + etag, 'warn');
-			/*if(!etag){
-				etag = 0;
-			}*/
-			
+			etag = this.getAttribute('lampcms:i_etag');		
 			stored = oStorage.getItem(qid + '_' + uid);
 			
 			//Y.log('stored for key: ' +qid+ ' is: ' + Y.dump(stored), 'warn');
 			if(stored){
 				//Y.log('have item for this question for this user: ' + stored);
-				if(stored == etag){
+				if(stored === etag){
 					//Y.log('this is read item ' + qid);
 					this.one('a.ql').addClass('read');	
 					span = this.one('span.ru');
@@ -1325,7 +1512,6 @@ YUI({
 						span.addClass('read');
 						span.setAttribute('lampcms:ttt', 'No Unread Items. Click to toggle status');
 					}
-				
 				}
 			}
 			
@@ -1342,26 +1528,19 @@ YUI({
 		curStatus = (el.test('.unread')) ? 'unread' : 'read';
 		qsDiv = el.ancestor("div.qs");
 		qid = qsDiv.get('id');
-		//Y.log('qid: ' + qid + ' uid: ' + uid);
 		link = qsDiv.one('a.ql');
-		//Y.log('link: ' + link);
-		etag = qsDiv.getAttribute('lampcms:i_etag');// + 0;
-		//Y.log('etag: ' + etag);			
+		etag = qsDiv.getAttribute('lampcms:i_etag');			
 		etag = parseInt(etag, 10);
-		//Y.log('etag of item on page: ' + etag, 'warn');
 		sKey = qid + '_' + uid;
-		if('unread' == curStatus){
+		if('unread' === curStatus){
 			link.removeClass('unread').addClass('read');
 			el.removeClass('unread').addClass('read').setAttribute('lampcms:ttt', 'No Unread items. Click to toggle status');
-			//Y.log('adding etag ' + etag + ' for key ' + sKey );
 			Y.StorageLite.setItem(sKey, etag);
 		} else {
 			link.removeClass('read').addClass('unread');
 			el.removeClass('read').addClass('unread').setAttribute('lampcms:ttt', 'Unread items. Click to toggle status');
-			//Y.log('removing etag for key' + sKey );
 			Y.StorageLite.removeItem(sKey);
 		}
-		
 	},
 	/**
 	 * Handle click on thumbup/thumbdown link
@@ -1371,7 +1550,7 @@ YUI({
 	 * 
 	 */
 	handleVote = function(el) {
-		var id = el.get('id');
+		var request, id = el.get('id');
 
 		switch (true) {
 		case el.test('.thumbupon'):
@@ -1392,12 +1571,36 @@ YUI({
 		case el.test('.thumbdown'):
 			el.removeClass('thumbdown');
 			el.addClass('thumbdownon');
-
+			break;
 		}
 
 		if (incrementVoteCounter(id)) {
-			var request = Y.io(el.get('href'));
+			request = Y.io(el.get('href'));
 		}
+	}, //
+	makeYoutubePlayer = function(el){
+		var myAnim, div, id, player;
+		div = el.ancestor("div");
+		id = el.get("rev");
+		player = '<iframe width="480" height="390" src="http://www.youtube.com/embed/' +id+ '?rel=0" frameborder="0" allowfullscreen></iframe>';
+		
+		div.addClass('bg_black');
+		myAnim = new Y.Anim({
+		    node: div,
+		    to: {
+		        width: 480,
+		        height: 390
+		    }
+		});
+		 
+		myAnim.set('duration', 0.6);
+		myAnim.set('easing', Y.Easing.easeOut);
+		myAnim.on('end', function() {
+		    myAnim.get('node').set('innerHTML', player);
+		});
+		
+		myAnim.run();	
+		
 	}, //
 	/**
 	 * Handles click on "like comment" icon
@@ -1429,20 +1632,27 @@ YUI({
 		
 	}, //
 	/**
+	 * Show QuickReg modal window
+	 */
+	getQuickRegForm = function(){
+		oSL.getQuickRegForm();
+	},
+	/**
 	 * Use Facebook UI to initiate
 	 * promnt to post to user wall
 	 * an invitation to join this site
 	 */
 	initFbInvite = function(target){
+		var siteTitle, siteUrl, siteDescription, caption;
 		if (typeof FB === 'undefined') {
 			//Y.log('No FB object', 'error');
 			return;
 		}
 
-		var siteTitle = getMeta('site_title');
-		var siteUrl = getMeta('site_url');
-		var siteDescription = target.get('title');
-		var caption = getMeta('site_description');
+		siteTitle = getMeta('site_title');
+		siteUrl = getMeta('site_url');
+		siteDescription = target.get('title');
+		caption = getMeta('site_description');
 		//Y.log('target title: ' + siteDescription);
 		FB.ui({
 			method : 'stream.publish',
@@ -1458,23 +1668,16 @@ YUI({
 				href : siteUrl
 			} ],
 			user_message_prompt : 'Invite your Facebook Friends to join this site'
-		}, function(response) {
-			if (response && response.post_id) {
-				//Y.log('Post was published to Wall');
-			} else {
-				//Y.log('Post was not published to Walll', 'warn');
-			}
-		});
+		}, function(response) {});
 	}, //
 	/**
 	 * Handle form submit for
 	 * forms inside the alerter (FB Overlay)
 	 */
 	handleModalForm = function(e){
-		var form = e.currentTarget;
+		var request, cfg, form = e.currentTarget;
 		e.halt();
-		//Y.log('handleModalForm el is: ' + form);
-		var cfg = {
+		cfg = {
 				method : 'POST',
 				form : {
 					id : form,
@@ -1483,8 +1686,7 @@ YUI({
 			};
 			oAlerter.hide();
 			showLoading();
-			
-			var request = Y.io('/index.php', cfg);
+			request = Y.io('/index.php', cfg);
 	},
 	
 	/**
@@ -1494,7 +1696,7 @@ YUI({
 	handleCommentForm = function(e){
 		//Y.log('handling handleCommentForm');
 		
-		var body, numChars, form = e.currentTarget;
+		var body, cfg, request, numChars, form = e.currentTarget;
 		e.halt();
 		e.preventDefault();
 		//Y.log('handleModalForm el is: ' + form);
@@ -1512,7 +1714,7 @@ YUI({
 			return;
 		}
 		
-		var cfg = {
+		cfg = {
 				method : 'POST',
 				form : {
 					id : form,
@@ -1523,34 +1725,36 @@ YUI({
 				oAlerter.hide();
 			}
 			showLoading(form.ancestor('div'));
-            var request = Y.io('/index.php', cfg);
+            request = Y.io('/index.php', cfg);
 	},
 	/**
-	 * This function executes onClick on any link with class 'ajax'
+	 * This function executes onClick on any element
+	 * with class 'ajax'
 	 */
 	handleAjaxLinks = function(e) {
 		var ancestor, //
 		id, //
-		res, //
 		rtype, //
 		restype, //
 		resID, //
 		fbappid, //
 		fbcookie, //
-		el = e.currentTarget,
-		target = e.target;
-		//Y.log('el is ' + el + ' id is: ' + el.get('id') + ' target: ' + target);
+		el = e.currentTarget;
+		Y.log('el is ' + el + ' id is: ' + el.get('id') + ' tagName: ' + el.get('tagName'));
 		id = el.get('id');
 		//e.halt();
 		//e.preventDefault();
 		switch (true) {
 		
 		case el.test('.qpages'):
-			if('A' == e.target.get('tagName') && Y.one(".paginated")){
-				
+			if('A' === e.target.get('tagName') && Y.one(".paginated")){				
 				e.halt();
 				handlePagination(e.target);
 			}
+			break;
+			
+		case el.test('.ext_api'):
+			checkExtApi(el);
 			break;
 			
 		case el.test('span.ru'):
@@ -1565,9 +1769,16 @@ YUI({
 			break;
 			
 		case el.test('.c_like'):
+			e.halt();
 			if(ensureLogin()){
 				handleLikeComment(el);
 			}
+			break;
+			
+		case el.test('.ytlink'):
+		case el.test('.ytplay'):
+			e.halt();
+			makeYoutubePlayer(el);			
 			break;
 			
 		case el.test('.fbsignup'):
@@ -1580,18 +1791,28 @@ YUI({
 			break;
 			
 		case el.test('.twsignin'):
-			//Y.log('clicked on twsignin.');
+			Y.log('clicked on twsignin.');
 			//Y.log('Twitter: ' + Twitter);
 			Twitter.startDance();
 			break;
 			
-		case (id == 'gfcset'):
+		case el.test('.add_tumblr'):
+			Y.log('clicked on .add_tumblr');
+			Twitter.startDance('/index.php?a=logintumblr', 680, 540);
+			break;
+			
+		case el.test('.add_blogger'):
+			Y.log('clicked on .add_blogger');
+			Twitter.startDance('/index.php?a=connectblogger', 680, 540);
+			break;
+			
+		case (id === 'gfcset'):
 			if((typeof google !=='undefined') && google.friendconnect){
 				google.friendconnect.requestSettings();
 			}
 			break;
 			
-		case (id == 'gfcinvite'):
+		case (id === 'gfcinvite'):
 			//Y.log('clicked on gfcinvite.');
 			if((typeof google !=='undefined') && google.friendconnect){
 				google.friendconnect.requestInvite();
@@ -1607,56 +1828,31 @@ YUI({
 		    oTweet.show();
 			break;
 			
+		case( el.test('.change_image')):
+			if(Y.one("#avatar_upload")){
+				Y.one("#avatar_upload").removeClass('pic_upload');
+			}
+			break;
+			
 		case (id === 'logout'):
 			e.preventDefault();
-			//Y.log('clicked logout');
-
-			if(typeof FB !== 'undefined'){
-				//Y.log('has FB');
-				fbappid = getMeta('fbappid');
-				//Y.log('fbappid: ' + fbappid);
+			e.halt();
+			showLoading(el);
+			fbappid = getMeta('fbappid');
+			
+			if((typeof FB !== 'undefined') && fbappid && FB.getSession()){
 				FB.logout(function(response) {
-					//Y.log('FB response ' + response);
-				});
-				if (fbappid) {
+					Y.log('FB response ' + Y.dump(response));
 					fbcookie = "fbs_" + fbappid;
-					//Y.log('fbcookie: ' + fbcookie);
+					Y.log('removing fbcookie: ' + fbcookie);
 					Y.Cookie.remove(fbcookie);
-				}
-			}
-			
-			if((typeof google !=='undefined') && google.friendconnect){
-				//Y.log('has GFC for logout');
-				if (!window.gfc_timesloaded) {
-				      window.gfc_timesloaded = 1;
-				      //Y.log('requesting gfc signout');
-				      google.friendconnect.requestSignOut();
-				      /**
-				       * Must logout NOW!
-				       * because we also have js in actual html page
-				       * which is loaded BEFORE this script and it will
-				       * reload the page WHEN it detects
-				       * the FriendCoect callback (GFC will issue callback
-				       * after the request signout)
-				       * and so we will never get to 
-				       * this script, thus will never call logout controller
-				       * 
-				       */
-				      window.location.assign('/index.php?a=logout');
-				    } else {
-				      window.gfc_timesloaded++;
-				    }
-				    if (window.gfc_timesloaded > 1) {
-				    	//Y.log('gfc_timesloaded > 1');
-				     //window.top.location.href = "/index.php?a=logout";
-				    }
+					Y.log('FB Session after logout: ' + Y.dump(FB.getSession()), 'warn');
+					window.location.assign('/index.php?a=logout');
+				});
 
-			}
-			
-			Y.later(500, this, function() {
+			} else {
 				window.location.assign('/index.php?a=logout');
-			});
-			
+			}
 			break;
 			
 		case el.test('.flag'):
@@ -1782,8 +1978,8 @@ YUI({
 	 * event can take place.
 	 */
 	handlePagination = function(el){
-		var href, answers = Y.one(".paginated");
-		//Y.log('el name: ' + el.get('tagName'));
+		var href, qpages;
+		qpages = el.ancestor("div.qpages");
 		if(!el.hasAttribute('href')){
 			//Y.log('723 no href');
 			return;
@@ -1791,8 +1987,8 @@ YUI({
 
 		href = el.getAttribute('href');
 		//Y.log('href: ' + href);
-		if(answers){
-			showLoading(answers);
+		if(qpages){
+			showLoading(qpages);
 			Y.io(href);			
 		}
 	},
@@ -1804,33 +2000,35 @@ YUI({
 	 * than just work with content that is already
 	 * on the page - no need to ask the server
 	 * 
-	 * @todo pre-cache results of tab content
+	 * pre-cache results of tab content
 	 * and then reuse it - check if content exists first
 	 * 
 	 */
 	getSortedAnswers = function(el){
 		
-		var href, eTab, curTab, curTabId, sortby = el.get('id'),
-		qid = getMeta('qid'), 
-		qtype = Y.one("#qtypes"),
-		answers = Y.one(".paginated");
-		//Y.log('sortby: ' + sortby);
+		var href, curTab, curTabId, sortby = el.get('id'),
+		qid, //
+		qtype = Y.one("#qtypes"), //	
+		eTab = el.ancestor("div").next("div.sortable") || Y.one(".sortable");
+		Y.log('sortby: ' + sortby);
 		if(el.test(".qtype_current")){
-			//Y.log('Clicked on already current tab. No soup for you');
+			Y.log('1818 Clicked on already current tab. No soup for you');
 			return;
 		}
-
+		/**
+		 * curTab is tab that is currently set as 'current'
+		 * not the one that triggered this event
+		 */
 		curTab = el.ancestor("div").one(".qtype_current");
-		//Y.log('curTab: ' + curTab);
+		Y.log('curTab: ' + curTab);
 		if(curTab){
 			curTabId = curTab.get("id");
-			//Y.log('curTabId: ' + curTabId);
+			Y.log('1826 curTabId: ' + curTabId);
 			if(!oCTabs.hasOwnProperty(curTabId)){
-				//Y.log('adding current contents of .paginated to oCAnsers');
-				eTab = Y.one(".sortable");
-				//Y.log('eTab: ' + eTab);
+				Y.log('1828 adding current contents of .paginated to oCAnsers');
+				Y.log('1835 next sortable eTab: ' + eTab);
 				oCTabs[curTabId] = eTab.getContent();
-				////Y.log('oCTabs[curTabId] now: ' + oCTabs[curTabId]);
+				Y.log('1838 oCTabs[curTabId] now: ' + oCTabs[curTabId]);
 			}
 		}
 		/**
@@ -1849,15 +2047,16 @@ YUI({
 		 * fetch it via XHR
 		 */
 		if(oCTabs.hasOwnProperty(sortby) && oCTabs[sortby].length > 0){
-			//Y.log('Youth gots it already');
-			answers.setContent(oCTabs[sortby]);
+			Y.log('1856 Youth gots it already');
+			eTab.setContent(oCTabs[sortby]);
 			foldGroup.fetch();
 		} else {
-			showLoading(answers);
+			showLoading(eTab);
 			//Y.log('after setting form qid: ' + qid);
+			//qid = getMeta('qid'),
 			href = el.getAttribute('href');
-			//Y.log('href: ' + href);			
-			href = ('#' === href) ? '/index.php?a=getanswers&qid='+qid+'&sort=' + sortby : href;
+			Y.log('href: ' + href);			
+			href = ('#' === href) ? '/index.php?a=getanswers&qid='+getMeta('qid')+'&sort=' + sortby : href;
 			Y.io(href, {'arguments' : {'sortby' : sortby}});
 			
 		}
@@ -1872,7 +2071,7 @@ YUI({
 		}
 		//Y.log('el: ' + el);
 		el.removeClass('unfollow');
-		var viewerDiv, title, controls, id, resID, ftype = 'q', follow = 'on', form, //
+		var viewerDiv, title, controls, resID, ftype = 'q', follow = 'on', form, //
 		oLabels = {'q' : 'question', 'u' : 'user', 't' : 'tag'};
 		resID = el.getAttribute('lampcms:follow');
 		ftype = el.getAttribute('lampcms:ftype');
@@ -1978,10 +2177,10 @@ YUI({
 	/**
 	 * Remove hidden class from elements
 	 */
-	revealHidden = function(){
-		var els = Y.all('.reveal');
+	revealHidden = function(e){
+		var els = (e) ? e.all('.reveal') : Y.all('.reveal');
 		if(els){
-			//els.removeClass('hidden');
+			
 			els.each(function(){
 				//Y.log('revealing stuff. this is: ' + this);
 				/**
@@ -2004,69 +2203,13 @@ YUI({
 			});
 		}
 	},
-	/**
-	 * Highlights the divs in view questions page(s)
-	 * to highlight the rows that contain questions
-	 * tagged with any of the tags that viewer
-	 * follows
-	 */
-	hiFollowedTags = function(){
-		if(Y.one("div.qlist")){
-			sel = getFollowedTagsSelectors();
-			eNodes = Y.all(sel);
-			if(eNodes && (eNodes.size() > 0)){
-				eNodes.each(function(){
-					var parent = this.ancestor("div.qs");
-					//Y.log('parent: '+parent);
-					if(parent){
-						parent.addClass('followed_tag');
-					}
-				});
-			}
-		}
-	}, //
-	/**
-	 * Get values of tag names that 
-	 * user follows.
-	 * These values are extracted from the a tag
-	 * inside the span inside the #usrtags div
-	 * Then a string of css class selectors
-	 * is generated using the names of the tags
-	 * 
-	 * @todo replace # . and + with some special chars
-	 * but then we must also replace these same special chars
-	 * during the creation of tags links and during adding
-	 * to followed tags
-	 * This is mostly important for programming related
-	 * tags, no really used in other types of forums
-	 * But we should be able to use unicode in tag values!
-	 * Basically unicode chars in urls are allowed but....
-	 * We can still replace them with entities using
-	 * some type of mb_convert_encoding and using
-	 * html entities are the "to" option
-	 */
-	getFollowedTagsSelectors = function(){
-		var sel = '', numTags, eTags = Y.all("div#usrtags > div > span > a");
-		//Y.log('eTags: ' + eTags);
-		if(eTags){
-			numTags = eTags.size();
-			//Y.log('numTags: ' + numTags);
-			for(var i = 0; i<numTags; i+=1){
-				sel += 'div.t-' + eTags.item(i).get('text') + ',';
-			}
-			
-			sel = (sel.length > 0) ? sel.substring(0, sel.length - 1) : sel;
-			//Y.log('sel: ' + sel);
-		}
-		
-		return sel;
-	},
+	
 
 	// A function handler to use for successful requests:
 	handleSuccess = function(ioId, o, args) {
 		hideLoading();
-		//Y.log("args from Y.io: " + Y.dump(args));
-		var paginated, scoreDiv, comDivID, eDiv, eRepliesDiv, sContentType = Y.Lang.trim(o.getResponseHeader("Content-Type"));
+		Y.log("args from Y.io: " + Y.dump(args));
+		var data, target, paginated, scoreDiv, comDivID, eDiv, eRepliesDiv, sContentType = Y.Lang.trim(o.getResponseHeader("Content-Type"));
 		if ('text/json; charset=UTF-8' !== sContentType) {
 			alert('Invalid Content-Type header: ' + sContentType);
 			return;
@@ -2076,7 +2219,7 @@ YUI({
 		 * data after parsing json
 		 * 
 		 */
-		if (o.responseText === undefined) {
+		if (undefined === o.responseText) {
 			alert('No text in response');
 			return;
 		}
@@ -2091,11 +2234,12 @@ YUI({
 		 * (maybe)
 		 */
 		try {
-			var data = Y.JSON.parse(o.responseText);
+			data = Y.JSON.parse(o.responseText);
 		} catch (e) {
-			alert("Error parsing response object" + e);
+			alert("Error parsing response object" + e + "<br>o.responseText: " + o.responseText);
 			return;
 		}
+	
 
 		if (data.exception) {
 			
@@ -2112,6 +2256,21 @@ YUI({
 			alert(data.alert);
 			//return;
 		}
+		
+		if (data.success) {
+			alert(data.alert);
+			//return;
+		}
+		
+		if(data.replace && data.replace.target && data.replace.content){
+			Y.log('got something to replace in ' + data.replace.target);
+			Y.one("#" + data.replace.target).set('innerHTML', data.replace.content);
+			foldGroup.fetch();
+			initTooltip();
+			revealHidden();
+			//return;
+		}
+		
 		
 		if(data.reload){
 			//Y.log('have data.reload');
@@ -2146,23 +2305,30 @@ YUI({
 			return;
 		}
 		
+		if(data.setmeta && data.setmeta.key && data.setmeta.val){
+			setMeta(data.setmeta.key, data.setmeta.val);
+		}
+		
 		if(data.paginated){
-			if(args && args.sortby){
-				//Y.log('have args and args.sortby');
-				oCTabs[args.sortby] = data.paginated;
-			}
 			paginated = Y.one(".paginated");
 			//Y.log('paginated: ' + paginated);
-			paginated.setContent(data.paginated);
-			foldGroup.fetch();
-			initTooltip();
-			return;
+			if(paginated){
+				paginated.setContent(data.paginated);
+				/**
+				 * Fire image loader again
+				 * so content of newly downloaded div
+				 * gets populated with images
+				 */
+				foldGroup.fetch();
+				initTooltip();
+				return;
+			}
 		}
 		
 		
 		if(data.comment && data.comment.res && data.comment.html){
 			//Y.log('got comment');
-			////Y.log('com_wrap is: ' + Y.one('#comm_wrap_' + data.comment.res));
+			
 			/**
 			 * If data.comment has id 
 			 * and div with comment-id exists
@@ -2193,9 +2359,13 @@ YUI({
 
 			if (data.redirect || data.answer) {
 				Y.StorageLite.removeItem(getStorageKey());
+				removeTitle();
+				removeTags();
 				if (data.redirect) {
-					alert('Item saved! Redirecting to <br><a href="' + data.redirect + '">' + data.redirect + '</a>');
-					// redirect in 1 second
+					getAlerter('<h3>Success</h3>')
+					.set("bodyContent", 'Item saved! Redirecting to <br><a href="' + data.redirect + '">' + data.redirect + '</a>')
+					.show(); 
+
 					Y.later(1000, this, function() {
 						window.location.assign(data.redirect);
 					});
@@ -2207,9 +2377,66 @@ YUI({
 				 * scrollIntoView
 				 */
 				if(Y.one("#answers")){
-					Y.one("#answers").append(data.answer);
+					if(editor){
+						editor.setEditorHTML('<br>');
+					}
+					Y.one("#answers").append(data.answer).scrollIntoView();
+					/**
+					 * If Code editor is enable
+					 * then run HighlightAll to highlight
+					 * code inside the  newly added answer
+					 */
+					if (typeof dp !== 'undefined') {					 	
+						dp.SyntaxHighlighter.HighlightAll('code');
+					 }
 				}
 			}
+		}
+	}, //
+	/**
+	 * Save value of id_title input
+	 * to Storage
+	 */
+	saveTitle = function(){
+		var title = Y.one("#id_title");
+		if(title){
+			//Y.log('2201 saving title to storage: ' + title.get('value'), 'warn');
+			Y.StorageLite.setItem('title', title.get('value'));
+		}
+	}, //
+	/**
+	 * Save value of "tags" from "tags" input to
+	 * Storage
+	 */
+	saveTags = function(){
+		var tags = Y.one("#id_tags");
+		if(tags){
+			Y.StorageLite.setItem('tags', tags.get('value'));
+		}
+	}, //
+	/**
+	 * Remove 'title' key 
+	 * from StorageLite
+	 * but only if id_title element
+	 * exists on page. This way it will not
+	 * be removed from the Answer page, only
+	 * from the Ask page.
+	 */
+	removeTitle = function(){
+		var title = Y.one("#id_title");
+		if(title){
+			Y.StorageLite.removeItem('title');
+		}
+	}, //
+	/**
+	 * Remove 'tags' key from LocalStorage
+	 * but only if element with id id_tags
+	 * is on the page
+	 */
+	removeTags = function(){
+		var tags = Y.one("#id_tags");
+		if(tags){
+			Y.StorageLite.removeItem('nuts');
 		}
 	}, //
 	/**
@@ -2225,7 +2452,7 @@ YUI({
 	 * be found then just show error in alert
 	 */
 	setFormError = function(o){
-		var field, eErr, eFormErr;
+		var field, eErr;
 		for(field in o){
 			if(o.hasOwnProperty(field)){
 				eErr = (Y.one("#" + field + "_e"));
@@ -2234,14 +2461,17 @@ YUI({
 					eErr.set('text', o[field]);
 				} else{
 					//Y.log('no element eErr, looking for .form_error');
-					eFormErr = Y.one(".form_error");
-					if(eFormErr){
+					eErr = Y.one(".form_error");
+					if(eErr){
 						//Y.log('youth gots eFormErr: ' + eFormErr);
-						eFormErr.set('text', o[field]);
-					} else {
-						//Y.log('no gots eFormErr, alerting');
-						alert(o[field]);
+						eErr.set('text', o[field]);
 					}
+				}
+				
+				if(eErr){
+					eErr.scrollIntoView();
+				} else {
+					alert(o[field]);
 				}
 			}
 		}
@@ -2261,27 +2491,14 @@ YUI({
 	/**
 	 * Submit question or answer form via ajax
 	 */
-	var MysubmitForm = function(e) {
+	MysubmitForm = function(e) {
 		
-		var mbody, title, tags, reason, form = e.currentTarget;
-		//Y.log('starting MysubmitForm');
+		var request, cfg, mbody, title, tags, reason, form = e.currentTarget;
+		
 		//Y.log('form is: ' + form);
 
 		title = form.one("#id_title");
-		if (title && (10 > title.get("value").length)) {
-			//Y.log('title too short');
-			alert('Please enter a descriptive title at least 10 characters long');
-			e.halt();
-			return;
-		}
-
 		tags = form.one("#id_tags");
-		if (tags && (1 > tags.get("value").length)) {
-			alert('Enter between 1 and 5 tags, separated by spaces');
-			e.halt();
-			return;
-		}
-		
 		reason = form.one("#id_reason");
 		if (reason && (1 > reason.get("value").length)) {
 			alert('You must include reason for editing');
@@ -2303,15 +2520,7 @@ YUI({
 		 * question/answers that are already on the page, thus we need 2
 		 * separate code previews
 		 */
-		//mbody = mbody.replace(/"codepreview"/g, '"code"');
-		if (mbody.length < 10) {
-			//Y.log('body too short');
-			alert('Questions and answers must be at least 10 characters long');
-			e.halt();
-			return;
-		}
-
-		// editor.saveHTML();
+		mbody = mbody.replace(/"codepreview"/g, '"code"');
 		/**
 		 * Instead of saveHTML() which will do cleanHTML yet again and will mess
 		 * up our already cleaned body, we will just set the value of form's
@@ -2322,7 +2531,7 @@ YUI({
 		
 		//Y.log('1117 mbody: ' + mbody);
 
-		var cfg = {
+		cfg = {
 			method : 'POST',
 			form : {
 				id : form,
@@ -2334,228 +2543,514 @@ YUI({
 			showLoading(Y.one("#dostuff").ancestor('div'));
 		}
 		
-		var request = Y.io('/index.php', cfg);
-		//Y.log('request: ' + request);
+		request = Y.io('/index.php', cfg);
 		
 		e.halt();
 		return false;
 
 	};
 
-	aComHand = Y.all('.com_hand');
-
-	// alert('Got com_hand ' + aComHand);
-	if (aComHand && !aComHand.isEmpty()) {
-		aComHand.on('focus', oSL.getQuickRegForm);
-	} else {
-
-		/**
-		 * Instantiate editor
-		 */
-		editor = new YAHOO.widget.Editor('id_qbody', {
-			dompath : true, // without dompath resize does not work
-			width : '660px',
-			height : '120px',
-			autoHeight : true,
-			extracss : 'pre { margin-left: 10px; margin-right: 10px; padding: 2px; background-color: #EEE; } ',
-			animate : true,
-			toolbar : {
-				titlebar : 'Editor',
+	
+	var getYTbutton = function(){
+		var ret = {type : 'separator'};
+		if('1' == getMeta('btn_yt')){
+		ret = {
+				type: 'push',
+			      label: 'Insert YouTube Video',
+			      value: 'insertmedia',
+			      id: 'btn_youtube'
+					};
+		} 
+		
+		return ret;
+	};
+	
+	var getCodeButton = function(){
+		var ret = {type : 'separator'};
+		if (typeof dp !== 'undefined') {
+			ret = {
+				group : 'sourcecode',
+				label : 'Code style',
 				buttons : [ {
-					group : 'saveclear',
-					label : 'Save / New',
-					buttons : [ {
-						type : 'push',
-						label : 'Save',
-						value : 'save'
+					type : 'select',
+					label : 'Select',
+					value : 'codestyle',
+					disabled : true,
+					menu : [ {
+						text : 'None',
+						value : 'nocode',
+						checked : true
 					}, {
-						type : 'push',
-						label : 'New',
-						value : 'clear'
-					} ]
-				}, {
-					group : 'textstyle',
-					label : 'Font Style',
-					buttons : [ {
-						type : 'push',
-						label : 'Bold CTRL + SHIFT + B',
-						value : 'bold'
+						text : 'JavaScript',
+						value : 'javascript'
 					}, {
-						type : 'push',
-						label : 'Italic CTRL + SHIFT + I',
-						value : 'italic'
+						text : 'HTML/XML',
+						value : 'xml'
 					}, {
-						type : 'push',
-						label : 'Underline CTRL + SHIFT + U',
-						value : 'underline'
+						text : 'CSS',
+						value : 'css'
 					}, {
-						type : 'push',
-						label : 'Strike Through',
-						value : 'strikethrough'
-					} ]
-				}, {
-					type : 'separator'
-				}, {
-					group : 'blockquote',
-					label : 'Quote',
-					buttons : [ {
-						type : 'push',
-						label : 'Indent',
-						value : 'indent',
-						disabled : true
+						text : 'Python',
+						value : 'python'
 					}, {
-						type : 'push',
-						label : 'Outdent',
-						value : 'outdent',
-						disabled : true
-					} ]
-				}, {
-					type : 'separator'
-				}, {
-					group : 'indentlist',
-					label : 'Lists',
-					buttons : [ {
-						type : 'push',
-						label : 'Create an Unordered List',
-						value : 'insertunorderedlist'
+						text : 'Ruby',
+						value : 'ruby'
 					}, {
-						type : 'push',
-						label : 'Create an Ordered List',
-						value : 'insertorderedlist'
-					} ]
-				}, {
-					type : 'separator'
-				}, {
-					group : 'insertitem',
-					label : 'Link',
-					buttons : [ {
-						type : 'push',
-						label : 'HTML Link CTRL + SHIFT + L',
-						value : 'createlink',
-						disabled : true
-					}
-
-					]
-				}, {
-					type : 'separator'
-				}, {
-					group : 'undoredo',
-					label : 'Undo/Redo',
-					buttons : [ {
-						type : 'push',
-						label : 'Undo',
-						value : 'undo',
-						disabled : true
+						text : 'PHP',
+						value : 'php'
 					}, {
-						type : 'push',
-						label : 'Redo',
-						value : 'redo',
-						disabled : true
+						text : 'C',
+						value : 'c'
+					}, {
+						text : 'C++',
+						value : 'cpp'
+					}, {
+						text : 'C#',
+						value : 'csharp'
+					}, {
+						text : 'Java',
+						value : 'java'
+					}, {
+						text : 'SQL',
+						value : 'sql'
+					}, {
+						text : 'VB',
+						value : 'vb'
+					}, {
+						text : 'Delphi',
+						value : 'delphi'
 					}
 
 					]
 				} ]
-			}
-		});
 
-		editor.on('toolbarLoaded', function() {
-
-			this.on('afterNodeChange', function(o) {
-
-				preview();
-
-			}, this, true);
-
-			/*
-			 * this.on('editorKeyUp', function() { preview(); });
-			 */
+			};
+		}
+		
+		return ret;
+	};
 
 
+	var makeEditor = function(){
+		var codeButtons,
+		btnSeparator  = {type : 'separator'};
+		if(Y.one("#id_qbody") && Y.all('.com_hand').isEmpty()){
+		codeButtons = getCodeButton();
 			/**
-			 * Listen to "Clear" button click
+			 * Instantiate editor
 			 */
-			editor.toolbar.on('clearClick', function() {
-				if (confirm('Are you sure you want to reset the Editor?')) {
-					editor.setEditorHTML('<br>');
-					write('Editor content cleared..');
+			editor = new YAHOO.widget.Editor('id_qbody', {
+				dompath : false, // without dompath resize does not work
+				width : '650px',
+				height : '180px',
+				autoHeight : !(Y.UA.ie > 0), // autoHeight in IE is buggy, disable it
+				extracss: 'pre { margin-left: 10px; margin-right: 10px; padding: 2px; background-color: #EEE; } a.ytplay{position: absolute; display: block; height: 44px; width: 44px; top: 23px; left: 38px;} .yui-media { height: 90px; width: 120px; border: 1px solid black; background-color: #f2f2f2; background-image: url( "/images/media.gif" ); background-position: 45% 45%; background-repeat: no-repeat; }  .ytvideo {border: 1px solid black; cursor: pointer; position: relative; clear: both; margin-bottom: 5px;}',
+				toolbar : {
+					buttons : [ {
+						group : 'saveclear',
+						label : 'Save / New',
+						buttons : [ {
+							type : 'push',
+							label : 'Save Draft',
+							value : 'save'
+						}, {
+							type : 'push',
+							label : 'New Document',
+							value : 'clear'
+						} ]
+					}, {
+						group : 'textstyle',
+						label : 'Font Style',
+						buttons : [ {
+							type : 'push',
+							label : 'Bold CTRL + SHIFT + B',
+							value : 'bold'
+						}, {
+							type : 'push',
+							label : 'Italic CTRL + SHIFT + I',
+							value : 'italic'
+						}, {
+							type : 'push',
+							label : 'Underline CTRL + SHIFT + U',
+							value : 'underline'
+						}, {
+							type : 'push',
+							label : 'Strike Through',
+							value : 'strikethrough'
+						} ]
+					}, btnSeparator, 
+					{
+						group : 'blockquote',
+						label : 'Quote',
+						buttons : [ {
+							type : 'push',
+							label : 'Indent',
+							value : 'indent',
+							disabled : true
+						}, {
+							type : 'push',
+							label : 'Outdent',
+							value : 'outdent',
+							disabled : true
+						} ]
+					}, btnSeparator, 
+					{
+						group : 'indentlist',
+						label : 'Lists',
+						buttons : [ {
+							type : 'push',
+							label : 'Create an Unordered List',
+							value : 'insertunorderedlist'
+						}, {
+							type : 'push',
+							label : 'Create an Ordered List',
+							value : 'insertorderedlist'
+						} ]
+					},  btnSeparator, 
+					codeButtons,
+					btnSeparator, 
+					{
+						group : 'insertitem',
+						label : 'Link / Image',
+						buttons : [ {
+							type : 'push',
+							label : 'HTML Link CTRL + SHIFT + L',
+							value : 'createlink',
+							disabled : true
+						},
+						
+						{
+							type : 'push',
+							label : 'Insert Image',
+							value : 'insertimage',
+							disabled : false
+						},
+						getYTbutton()
+
+						]
+					}, btnSeparator, {
+						group : 'undoredo',
+						label : 'Undo/Redo',
+						buttons : [ {
+							type : 'push',
+							label : 'Undo',
+							value : 'undo',
+							disabled : true
+						}, {
+							type : 'push',
+							label : 'Redo',
+							value : 'redo',
+							disabled : true
+						}
+
+						]
+					} ]
 				}
 			});
-			editor.toolbar.on('saveClick', saveToStorage);
-		});
+			/**
+			 * Original code from YUI2 Editor has genocidal behaviour in
+			 * Chrome. Replacing it now!
+			 */
+			editor.filter_safari = function(html) {
+	            if (this.browser.webkit) {
+	                //<span class="Apple-tab-span" style="white-space:pre">	</span>
+	                html = html.replace(/<span class="Apple-tab-span" style="white-space:pre">([^>])<\/span>/gi, '&nbsp;&nbsp;&nbsp;&nbsp;');
+	                html = html.replace(/Apple-style-span/gi, '');
+	                html = html.replace(/style="line-height: normal;"/gi, '');
+	                html = html.replace(/yui-wk-div/gi, '');
+	                html = html.replace(/yui-wk-p/gi, '');
 
-		editor.on('editorContentLoaded', function() {
-			var ec = editor.get('element_cont');
-
-			resize = new YAHOO.util.Resize(ec.get('element'), {
-				handles : [ 'b', 'br' ],
-				autoRatio : true,
-				proxy : true,
-				setSize : false
-
-			});
-			resize.on('startResize', function() {
-				this.hide();
-				this.set('disabled', true);
-			}, editor, true);
-			resize.on('resize', function(args) {
-				var h = args.height;
-				var th = (this.toolbar.get('element').clientHeight + 2);
-				var dh = (this.dompath.clientHeight + 1);
-				var newH = (h - th - dh);
-				this.set('width', args.width + 'px');
-				this.set('height', newH + 'px');
-				this.set('disabled', false);
-				this.show();
-			}, editor, true);
-		});
-
-		
-		//Y.log('doing some storage lite stuff ' + !Y.one('#iedit'));
-		if(!Y.one('#iedit')){
-		Y.later(5000, editor, function() {
-				if (editor.editorDirty) {
-				editor.editorDirty = null;
-				saveToStorage();
-			}
-		}, {}, true);
-		}
-
-		Y.StorageLite.on('storage-lite:ready', function() {
-			var editorValue, body = Y.one('#id_qbody');
-			editorValue = Y.StorageLite.getItem(getStorageKey());
-			if (body && !Y.one('#iedit') && null !== editorValue && '' !== editorValue) {
-				body.set('value', editorValue);
-				write('Loaded content draft from Local Storage');
-			} else {
-				write('Editor ready');
-			}
-				editor.render();
-			});
-		
-		/**
-		 * Preview result html from editor
-		 */
-		var getEditedText = function() {
-			var html = editor.getEditorHTML();
-			html = editor.cleanHTML(html);
+	                //Remove bogus LI's
+	                html = html.replace(/<li><\/li>/gi, '');
+	                html = html.replace(/<li> <\/li>/gi, '');
+	                html = html.replace(/<li>  <\/li>/gi, '');
+	                //Remove bogus DIV's - updated from just removing the div's to replacing /div with a break
+	                if (this.get('ptags')) {
+			            html = html.replace(/<div([^>]*)>/g, '<p$1>');
+					    html = html.replace(/<\/div>/gi, '</p>');
+	                }
+	            }
+	            return html;
+	        };
+	        
+	        
+			editor.on('windowinsertmediaClose', function() {
+		        _handleWindowClose.call(this);
+		    }, editor, true);
 			
-			return html;
-		};
+			editor.cmd_insertmedia = function() {
+		        this.execCommand('insertimage', ''); // 'none'
+		        var el = this._swapEl(this.currentElement[0], 'div', function(el) {
+		            el.className = 'yui-media';
+		            YAHOO.util.Dom.setStyle(el, 'fontSize', '100px'); 
+		        });
+		        this.currentElement = [el];
+		        _handleMediaWindow.call(this);
+		 
+		        return [false];
+		    };
+			
+		    
+			editor.on('toolbarLoaded', function() {
+				
+				Y.log('2507 this is ' + this, 'warn'); // Editor
 
-		var previewDiv = Y.one('#tmp_preview');
+				this.on('afterNodeChange', function(o) {
+					var ytbtn = this.toolbar.getButtonByValue('insertmedia'), 
+					btn = this.toolbar.getButtonByValue('codestyle');
+					if(btn){
+						if (this._hasSelection()) {
+							this.toolbar.enableButton(btn);
+						} else {
+							this.toolbar.disableButton(btn);
+						}
+					}
+					
+					if(ytbtn){
+					  if (this._hasSelection()) {
+				            this.toolbar.disableButton('insertmedia');
+				        } else {
+				            this.toolbar.enableButton('insertmedia');
+				            var el = this._getSelectedElement();
+				            el = new Y.Node(el);
+				            if (el.hasClass('yui-media')) {
+				                this.toolbar.selectButton('insertmedia');
+				            } else {
+				                this.toolbar.deselectButton('insertmedia');
+				            }
+				        }
+					}
+					
+					preview();
+				}, this, true);
 
-		var preview = function() {
-			previewDiv = (previewDiv) ? previewDiv : null;
-			if (previewDiv) {
-				previewDiv.set('innerHTML', getEditedText());
+				 editor.toolbar.on('insertmediaClick', function() {
+					 Y.log('this is: ' + this);
+			            var el = editor._getSelectedElement();
+			            // Y.log('2618 el: ' + el);
+			            if (YAHOO.util.Dom.hasClass(el, 'yui-media')) {
+			            	editor.currentElement = [el];
+			                _handleMediaWindow.call(editor);
+			                return false;
+			            }
+			        }, this, true);
+				 
+				 this.on('editorKeyUp', function() { preview(); });
+				  
+				  
+				  /**
+					 * Handler for codeselectClick event Desired result: If selected
+					 * element is NOT
+					 * 
+					 * 'pre' then create element pre and set its innterHTML and
+					 * replaceChild on parent, same way the editor handles 'b' element!
+					 * 
+					 * If, however the parent is &lt;pre&gt; then we run 'deselect'
+					 * routine which will have to replace the &lt;pre&gt; with contents
+					 * of its innerHTML
+					 * 
+					 * @todo may have to experiment with currentSelection and range
+					 *       objects instead, then work with just html strings and
+					 *       offset and length from range.
+					 * 
+					 * Firefix handles selections like shit. It wraps each line inside
+					 * the pre tags and then removes name=&quot;code&quot; from every
+					 * line after first occurance.
+					 * 
+					 */
+					editor.toolbar.on('codestyleClick', function(ev) {
+						Y.log('2606 codestyleClick', 'warn');
+						var escaped, //
+						html, //
+						sel = this._getSelection(), //
+						newEl, //
+						el = editor._getSelectedElement(), //
+						codetype = ev.button.value.toLowerCase();
+						
+						Y.log('2613 sel: ' + sel.toString(), 'warn');
+						/**
+						 * Need to escape html to turn html
+						 * into entities! otherwise html is just html tags
+						 * 
+						 * Super important to call toString() because sel is an object
+						 * and without calling toString it will modify 
+						 * the Actual object and everything
+						 * will get messed up down the line!
+						 */
+						escaped = Y.Escape.html(sel.toString());
+						Y.log('2619 escaped: ' + escaped, 'warn');
+						/**
+						 * Case 1. User selected nocode and was inside the pre element.
+						 * This means we must de-pre the selection
+						 * 
+						 * Case 2. User selected the code style while inside the pre
+						 * element. In this case we must change the 'className' or the
+						 * pre element 'el'
+						 * 
+						 * Case 3. User selected the code outside of the pre element. In
+						 * this case we must create the new pre element and set its
+						 * className and set selection as innerHTML
+						 * 
+						 * @todo if changing from pre to not-pre then we need to replace
+						 *       spaces with &nbsp; and line breaks with <br>
+						 *       tags, otherwise they are lost instantly and its
+						 *       impossible to change back to pre - it will all be one
+						 *       line Must find a function that does that. I think
+						 *       cleanHTML actually does this! none of the built in
+						 *       filters seem to work. Probably the swapTag() is the one
+						 *       that messes everything up and strips all whitespaces
+						 *       and linebreaks and then it's too late to fix it as all
+						 *       formatting is gone
+						 * 
+						 */
+						switch(true){
+						case ('nocode' === codetype && editor._isElement(el, 'pre')):
+							Y.log('2641 element is turning to nocode ', 'warn');
+							editor._swapEl(el, 'code');
+							html = editor.getEditorHTML();
+							html = html.replace(/<code([^>]*)>/gi, '');
+							html = html.replace(/<\/code>/gi, '');
+							editor.setEditorHTML(html);
+							break;
+							
+						case (editor._isElement(el, 'pre')):
+							Y.log('2651 element is pre ', 'warn');
+							el.className = codetype;
+							break;
+							
+						default:
+								Y.log('2657 default - wrapping in pre tag ', 'warn');
+								editor.execCommand('inserthtml', '<pre alt="codepreview" class="' + codetype + '">' + escaped + '</pre>');	
+						}
+			
+						return false;
+						
+					}, this, true);
+				 
+				/**
+				 * Listen to "Clear" button click
+				 */
+				editor.toolbar.on('clearClick', function() {
+					if (confirm('Are you sure you want to reset the Editor?')) {
+						editor.setEditorHTML('<br>');
+						write('Editor content cleared..');
+					}
+				});
+				editor.toolbar.on('saveClick', saveToStorage);
+			});
+
+			editor.on('windowRender', function() {
+		        var body = document.createElement('div');	        
+		        body.innerHTML = '<p>Paste Link to YouTube Video here:</p>';
+		        body.innerHTML += '<p>Click "Share" button on YouTube Video page<br>then copy the link from there and paste it into this form</p>';
+		        body.innerHTML += '<div id="media_control"><form>URL: <input id="embed_url" type="text" value="" size="30" style="font-size: 1.5em; padding: 2px;"></form></div>';
+		        body.innerHTML += '<br><div id="media_cont" class="fl cb" style="margin-left: 35px;"><button id="btn_addvideo" type="button" style="padding: 4px; font-size: 1em; cursor: pointer;">Add YouTube Video</button></div><br>';
+		        body.className = 'pad10';
+		       editor._windows.insertmedia = {
+		            body: body
+		        };
+		 
+		    });
+			
+			if(!Y.one('#iedit')){
+			Y.later(5000, editor, function() {
+					if (editor.editorDirty) {
+					editor.editorDirty = null;
+					saveToStorage();
+				}
+			}, {}, true);
 			}
 
-		};
+			Y.StorageLite.on('storage-lite:ready', function() {
+				var title, tags, editorValue, body = Y.one('#id_qbody');
+				editorValue = Y.StorageLite.getItem(getStorageKey());
+				if (body && !Y.one('#iedit') && null !== editorValue && '' !== editorValue) {
+					body.set('value', editorValue);
+					Y.one('#tmp_preview').set('innerHTML', editorValue);
+					if(Y.one("#id_title")){
+						title = Y.StorageLite.getItem('title');
+						tags = Y.StorageLite.getItem('tags');
+						if(title){
+							Y.one("#id_title").set('value', title);
+						}
+						if(title){
+							Y.one("#id_tags").set('value', tags);
+						}
+					}
+					write('Loaded content draft from Local Storage');
+				} else {
+					write('Editor ready');
+				}
+				Y.log('2984 rendering editor ', 'error');
+				editor.render();
+				
+				});
+			
 
-		
-	} // end if NOT com_hand, means if we going to use RTE
+			/**
+			 * Preview result html from editor
+			 * 
+			 */
+			getEditedText = function() {
+				var i, pre, holder, html = editor.getEditorHTML();
+				Y.log('3059 raw editor html: ' + html, 'warn');
+				html = editor.cleanHTML(html);				
+				Y.log('3061 html after cleanHTML: ' + html);
+				
+				/**
+				 * Lines below are part of code editing
+				 * function.
+				 * 
+				 */
+				if (typeof dp !== 'undefined') {
+					
+					html = html.replace(/alt="codepreview"/g, 'rel="codepreview"');
+					
+					/**
+					 * Now need to remove 'br' tags from inside the pre block and also
+					 * replace &nbsp; with just spaces because inside the 'pre' tags
+					 * there should not be &nbsp tags: one space is just one char vs 6
+					 * chars in &nbsp;
+					 */
+					holder = document.createElement('div');
+					holder.innerHTML = html;
+					pre = holder.getElementsByTagName('pre');
+					for ( i = 0; i < pre.length; i++) {
+						pre[i].innerHTML = "\n" + pre[i].innerHTML.replace(/<br>/g, "\n") + "\n";
+						pre[i].innerHTML = "\n" + pre[i].innerHTML.replace(/&nbsp;/g, " ") + "\n";
+						//pre[i].innerHTML = pre[i].innerHTML.replace(/<br>/g, "&#10;");
+						//pre[i].innerHTML = pre[i].innerHTML.replace(/&nbsp;/g, " ");
+					}
 	
-	var showFlagForm = function(o){
+					html = holder.innerHTML;
+					Y.log('html after replacing: ' + html, 'warn');
+				}
+				
+				return html;
+			};
+
+			preview = function() {
+				var h, sh, previewDiv,//
+				pd = Y.one('#tmp_preview');
+				previewDiv = (pd) ? pd : null;
+				h = previewDiv.getStyle('height');
+				//sh = previewDiv.getStyle('scroll-height');
+				if (previewDiv) {
+					previewDiv.set('innerHTML', getEditedText());
+					previewDiv.setStyle('height', (h+5));
+				}
+
+				if ((typeof dp !== 'undefined') && dp.SyntaxHighlighter){
+					dp.SyntaxHighlighter.HighlightAll('codepreview');
+				}
+
+			};
+		}
+	};// end makeEditor
+	
+	
+	
+	showFlagForm = function(o){
 		var oAlert, form, faction = 'flagger';
 		if(ensureLogin()){
 			if(o.rtype && 'c' === o.rtype){
@@ -2586,7 +3081,7 @@ YUI({
 	};
 	
 	
-	var showCloseForm = function(qid){
+	showCloseForm = function(qid){
 		var oAlert, form;
 		if(ensureLogin()){
 		form = '<div style="text-align: left">'
@@ -2613,7 +3108,7 @@ YUI({
 	};
 	
 	
-	var showRetagForm = function(){
+	showRetagForm = function(){
 		var oAlert, form, oTags, sTags = '';
 		if(ensureLogin()){
 			oTags = Y.all('td.td_question > div.tgs a');
@@ -2631,7 +3126,7 @@ YUI({
 + '<input type="hidden" name="qid" value="'+ getMeta('qid') +'">'
 + '<hr>'
 + '<label for="id_note">At least one tag, max 5 tags separated by spaces</label>'
-+ '<input type="text" class="ta1" size="40" name="tags" value="'+sTags+'" style="display: block;"></input>'
++ '<input type="text" class="ta1" id="id_retag" size="40" name="tags" value="'+sTags+'"></input>'
 + '<br>'
 + '<input type="submit" class="btn" value="Save">'
 + '</form>'
@@ -2639,7 +3134,9 @@ YUI({
 		
 		 oAlert = getAlerter('<h3>Edit Tags</h3>');
 	     oAlert.set("bodyContent", form);
+	     initTagInput(Y.one("#id_retag"));
 	     oAlert.show(); 
+	    
 		}
 		
 	};
@@ -2675,7 +3172,7 @@ YUI({
 		}	
 	};
 	
-	var showDeleteForm = function(o){
+	showDeleteForm = function(o){
 		var oAlert, form, banCheckbox = '', a='delete';
 		if(ensureLogin()){
 			if(o.rtype && 'c' === o.rtype){
@@ -2683,7 +3180,7 @@ YUI({
 			}
 			
 			if(isModerator()){
-				banCheckbox = '<br><input type="checkbox" name="ban"><label> Ban poster</label><br>'
+				banCheckbox = '<br><input type="checkbox" name="ban"><label> Ban poster</label><br>';
 			}
 			form = '<div id="div_del" style="text-align: left">'
 				+ '<form name="form_del" action="/index.php">'
@@ -2707,17 +3204,19 @@ YUI({
 		}
 	};
 	
-	var showCommentForm = function(el){
-		var form, reputation, resID;
-		reputation = getReputation();
-		//Y.log('el: ' + el + 'reputation: ' + reputation);
+	showCommentForm = function(el){
+		var minrep, vid, form, rep, resID;
+		rep = getReputation();
+		vid = getViewerId();
+		minrep = getMeta('min_com_rep');
+		Y.log('rep: ' + rep + ' minrep: ' + minrep);
 		//Y.log('rid' + el.get('id'));
 		if(ensureLogin()){
-		if( isModerator() || (reputation > 0) || el.test('.uid-' + getViewerId())){
+		//if( isModerator() || (reputation > 0) || el.test('.uid-' + getViewerId())){
+		if( ('1' === getMeta('comment')) || (getMeta('asker_id') === vid) || (rep > minrep) || el.test('.uid-' + vid)){	
 			resID = el.get('id');
 		    resID = resID.substr(8);
-		    //Y.log('resID ' + resID);
-		
+		    
 		    form = Y.one('#add-comment-' + resID);
 		    if(!form){
 		    	form = '<div id="comm_wrap_' + resID + '" class="fl cb">'
@@ -2748,9 +3247,10 @@ YUI({
 		    	}
 		    }
 		
-		
 		} else {
-			alert('You must have a reputation of at least 1<br>to be able to add comments');
+			alert('You must have a reputation of at least <b>'+minrep+'</b><br>'
+					+'to be able to add comments<br>'
+					+'Your current reputation is: <b>' + rep + '</b>');
 			return;
 			}
 		}
@@ -2758,14 +3258,13 @@ YUI({
 		
 	};
 	
-	var showEditComment = function(resID){
+	showEditComment = function(resID){
 		var form, wrapDiv, body, content;
 		/**
 		 * Check for comment edit timeout
 		 * and don't allow editing comments
 		 * older than 5 minutes
 		 */
-		
 		wrapDiv = Y.one("#comment-" + resID);
 		//Y.log('wrapDiv: ' + wrapDiv);
 		if(wrapDiv){
@@ -2798,7 +3297,7 @@ YUI({
 		}
 	};
 	
-	var showShredForm = function(uid){
+	showShredForm = function(uid){
 		var id = uid.substr(5);
 		//Y.log('uid: ' +id);
 		form = '<div id="div_del" style="text-align: left">'
@@ -2821,15 +3320,14 @@ YUI({
 				oAlert.show(); 
 	};
 	
-	var setMeta = function(metaName, value){
+	setMeta = function(metaName, value){
 		var node = getMeta(metaName, true);
 		if(node && value){
 			node.set('content', value);
 		}
 	};
 	
-	var ensureLogin = function(bForceAlert){
-		//Y.log('ensureLogin');
+	ensureLogin = function(bForceAlert){
 		var message;
 		if(bForceAlert || !isLoggedIn()){
 			message = '<div class="larger"><p>You must login to perform this action</p>'
@@ -2847,18 +3345,18 @@ YUI({
 	 * Get value of 'mytoken' meta tag which serves as a security token for form
 	 * validation.
 	 */
-	var getToken = function() {		
+	getToken = function() {		
 		return getMeta('version_id');
 	};
 	
 	/**
 	 * Set (update) the value of meta name="mytoken" meta tag with the new value
 	 */
-	var setToken = function(val) {
+	setToken = function(val) {
 		setMeta('version_id', val);
 	};
 	
-	var getViewerId = function(){
+	getViewerId = function(){
 		var uid;
 		//Y.log('starting getViewerId');
 		if(null === viewerId){
@@ -2875,7 +3373,7 @@ YUI({
 	 * Test to determine if page is being viewed by a logged in user a logged in
 	 * user has the session-tid meta tag set to value of twitter userid
 	 */
-	var isLoggedIn = function() {
+	isLoggedIn = function() {
 		
 		var ret, uid = getViewerId();
 		//Y.log('isLoggedIn uid: ' + uid);
@@ -2891,11 +3389,11 @@ YUI({
 	 * 
 	 * @return bool true if moderator or admin
 	 */
-	var isModerator = function(){
+	isModerator = function(){
 		var role;
 		if(bModerator < 2){
 			role = getMeta('role');
-			if(role && (('administrator' == role)  || ('moderator' == role) )){
+			if(role && (('administrator' === role)  || ('moderator' === role) )){
 				bModerator = 3;
 			} else {
 				bModerator = 2;
@@ -2905,12 +3403,14 @@ YUI({
 		return (3 === bModerator);
 	};
 	
+
+	
 	/**
 	 * Get reputation score of current viewer
 	 * 
 	 * @return int reputation score
 	 */
-	var getReputation = function(){
+	getReputation = function(){
 		var score;
 		if(!reputation){
 			score = getMeta('rep');
@@ -2925,7 +3425,7 @@ YUI({
 	 * only if viewer is moderator or 
 	 * has enough reputation to use them
 	 */
-	var addAdminControls = function(){
+	addAdminControls = function(){
 		
 		var controls = Y.all('div.controls');
 		//Y.log('controls ' + controls);
@@ -2940,7 +3440,7 @@ YUI({
 					if(!Y.one('#closed') && (isModerator() || this.test('.uid-' + getViewerId()) ) ){
 						this.append(' <span class="ico close ajax"  title="Close this question">close</span>');
 					}
-					if('administrator' == getMeta('role')){
+					if('administrator' === getMeta('role')){
 						if(!this.test('.sticky')){
 							this.append(' <span class="ico stick ajax"  title="Make sticky">stick</span>');
 						} else {
@@ -2988,7 +3488,7 @@ YUI({
 	 * Comments older than 5 minutes are not editable
 	 * unless viewer is moderator
 	 */
-	var isEditable = function(controls){
+	isEditable = function(controls){
 		
 		var timeOfComment, timeDiff, maxDiff;
 		//Y.log('controls passed to isEditable: ' + controls);
@@ -3016,15 +3516,15 @@ YUI({
 		}
 
 		timeOfComment = new Date(timeOfComment);
-		//Y.log('timeOfComment: ' + timeOfComment);
-		timeDiff = (Date.now() - timeOfComment.getTime());
-		//Y.log('timeDiff: ' +  timeDiff);
+		timeDiff = ((new Date()).getTime() - timeOfComment.getTime());
+		Y.log('3042 timeDiff: ' +  timeDiff);
 		
 		if(timeDiff > maxDiff){
-			//Y.log('comment is older than maxDiff', 'warn');
+			Y.log('comment is older than maxDiff', 'warn');
 			
 			return false;
 		}
+		Y.log('Comment is editable');
 		
 		return true;
 		
@@ -3035,32 +3535,57 @@ YUI({
 	 * Start the Facebook Login process
 	 * using Facebook Javascript API
 	 */
-	var initFBSignup = function() {
-		var fbPerms = getMeta('fbperms');
-		if (!fbPerms) {
-			fbPerms = '';
-		}
+	initFBSignup = function() {
+		Y.log('initFBSignup');
+		var callback, fbPerms;
 		if (typeof FB !== 'undefined') {
-			FB.login(function(response) {
-				if (response.session) {
-					//Y.log('FB Signed in');
-					if (response.perms) {
-						// user is logged in and granted some
-						// permissions.
-						// perms is a comma separated list of granted
-						// permissions
-						// alert('Granted perms: ' + response.perms);
-						window.top.location.reload(true);
-					} else {
-						// user is logged in, but did not grant any
-						// permissions
+			fbPerms = getMeta('fbperms');
+			if (!fbPerms) {
+				fbPerms = '';
+			}
+			
+			/**
+			 * If user is logged in then this is a request
+			 * to Connect Facebook to existing user
+			 * in this case we send IO request to special
+			 * controller that will do its thing and 
+			 * return some json data which will result 
+			 * in setting meta 'fb' to '1'
+			 * and replacing a div of "connect" button with
+			 * link to FB profile
+			 */
+			if(isLoggedIn()){
+				callback = function(response) {
+					Y.log('Connecting Facebook account', 'warn');
+					if (response.session) {
+						//Y.log('FB Signed in');
+						if (response.perms) {
+							showLoading(null, 'Connecting<br>Facebook account');
+							Y.io('/index.php?a=connectfb');
+						} else {
+							Y.log('No permissions from Facebook', 'error');
+						}
 					}
-				} else {
-					// user is not logged in
-				}
-			}, {
-				perms : fbPerms
-			});
+				};
+			} else {
+				callback = function(response) {
+					if (response.session) {
+						//Y.log('FB Signed in');
+						if (response.perms) {
+							// user is logged in and granted some
+							// permissions.
+							// perms is a comma separated list of granted
+							// permissions
+							// alert('Granted perms: ' + response.perms);
+							window.top.location.reload(true);
+						} 
+					} else {
+						Y.log('Facebook login did not work', 'error');
+					}
+				};
+			}
+		
+			FB.login(callback, {perms : fbPerms});
 		}
 
 		return;
@@ -3070,7 +3595,7 @@ YUI({
 	/**
 	 * Get fbOverlay, reuse existing one
 	 */
-	var getAlerter = function(header){
+	getAlerter = function(header){
 		if(!oAlerter){
 			oAlerter = new Y.Overlay({
 				srcNode : '#fbOverlay',
@@ -3104,15 +3629,13 @@ YUI({
 		return oAlerter;
 	};
 	
-	var getMeta = function(metaName, asNode){
+	getMeta = function(metaName, asNode){
 		var ret, node;	
 		//Y.log('looking for meta: ' + metaName + ' oMetas ' + oMetas);
 		if(!oMetas[metaName]){
 			node = Y.one('meta[name=' + metaName +']');
 			//Y.log('meta node for meta ' + metaName+ ' is: ' + node);
 			oMetas[metaName] = node;
-		} else {
-			//Y.log('meta is already resolved to ' + oMetas[metaName], 'info');
 		}
 		
 		if(!oMetas[metaName]){
@@ -3131,9 +3654,43 @@ YUI({
 		
 	};
 	
+	/**
+	 * When user clicked on checkbox
+	 * like "post to Twitter"
+	 * we check to make sure Viewer has
+	 * Twitter account connected, else
+	 * initiate Twitter dance
+	 */
+	checkExtApi = function(el){
+		Y.log('3126 is Checked: ' + el.get('checked'));
+		if((el.get('tagName') === 'INPUT')  && el.get('checked')){
+			saveToStorage();			
+			switch(true){
+			case ((el.get('id') === 'api_tweet') && (!getMeta('tw'))):
+				Twitter.startDance();
+				break;
+			
+			case ((el.get('id') === 'api_facebook') && ('1'  !== getMeta('fb'))):
+				initFBSignup();
+				break;
+				
+			case ((el.get('id') === 'api_tumblr') && ('1'  !== getMeta('tm'))):
+				Y.log('3222 api_tumblr');
+				Twitter.startDance('/index.php?a=logintumblr', 800, 540);
+				break;
+				
+			case ((el.get('id') === 'api_blogger') && ('1'  !== getMeta('blgr'))):
+				Y.log('3227 api_blogger');
+			    Twitter.startDance('/index.php?a=connectblogger', 680, 540);
+				break;
+
+			}
+		}
+	};
+	
 	revealComments = function(){
 		var comments, limit = getMeta('max_comments');
-		if(limit && 0 < parseInt(limit)){			
+		if(limit && 0 < parseInt(limit, 10)){			
 			comments = Y.all('div.nocomments');
 			if(comments){
 				comments.removeClass('nocomments');
@@ -3141,7 +3698,7 @@ YUI({
 		}
 	};
 	
-	var Twitter = {
+	Twitter = {
 			/**
 			 * Popup window object
 			 */
@@ -3158,9 +3715,16 @@ YUI({
 			/**
 			 * Start the oAuth login process by opening the popup window
 			 */
-			startDance : function() {
+			startDance : function(url, w, h) {
+				showLoading();
 				//Y.log('1084 starting oAuth dance this is: ' + this, 'window'); // Object Twitter
-				var popupParams = 'location=0,status=0,width=800,height=450,alwaysRaised=yes,modal=yes', mydomain = window.location.hostname;
+				var u, mydomain, popupParams, height, width; //
+				
+				width = (w) ? w : 800;
+				height = (h) ? h : 800;
+				popupParams =  'location=0,status=0,width=' + width + ',height=' + height + ',alwaysRaised=yes,modal=yes';
+
+				u = (!url) ? 'http://' + window.location.hostname + '/index.php?a=logintwitter&ajaxid=1' : url;
 
 
 				/**
@@ -3170,15 +3734,14 @@ YUI({
 				 * 
 				 */
 				if (this.popupWindow && !this.popupWindow.closed) {
-					this.popupWindow.location.href = 'http://' + mydomain
-							+ '/index.php?a=logintwitter';
+					this.popupWindow.location.href = u;
 					this.popupWindow.focus();
+					hideLoading();
 					return;
 				}
 
-				this.popupWindow = window.open('http://' + mydomain
-						+ '/index.php?a=logintwitter', 'twitterWindow', popupParams);
-
+				this.popupWindow = window.open(u, 'twitterWindow', popupParams);
+				hideLoading();
 				if (!this.popupWindow) {
 					alert('Unable to open login window. Please make sure to disable popup blockers in your browser');
 					return;
@@ -3211,9 +3774,6 @@ YUI({
 			 * to see if session now has user object
 			 */
 			checkLogin : function() {
-				//Y.log('Checking login. this is ' + this, 'window'); // this is object Window
-
-				var transaction, cObj;
 
 				if (!Twitter.popupWindow || Twitter.popupWindow.closed) {
 
@@ -3248,15 +3808,16 @@ YUI({
 			}
 		};
 	
-	var initTooltip = function(){
-		var TTT = document.getElementsByClassName('ttt');
-		if(TTT){
+	initTooltip = function(){
+		var TTT = Y.all('.ttt');
+		if(TTT && TTT.size() > 0){
 			if(ttB){
 				ttB.destroy();
 			}
 		ttB = new YAHOO.widget.Tooltip("ttB", { 
-			context:TTT,
+			context:TTT._nodes,
 			autodismissdelay: 5500,
+			width: '300px',
 			hidedelay: 350,
 			xyoffset: [-10, -45],
 			effect:{effect:YAHOO.widget.ContainerEffect.FADE,duration:0.20}
@@ -3266,9 +3827,10 @@ YUI({
 	
 	};
 
-	if(TTT2){
+	if(TTT2 && TTT2.size() > 0){
+		//Y.log('TTT2 dom nodes: ' + TTT2._nodes, 'warn');
 		ttB2 = new YAHOO.widget.Tooltip("ttB2", { 
-			context:TTT2,
+			context:TTT2._nodes,
 			autodismissdelay: 5500,
 			hidedelay: 350,
 			xyoffset: [-10, -45],
@@ -3276,9 +3838,9 @@ YUI({
 		});
 	}
 	
-	var initAutoComplete = function(){
+	initAutoComplete = function(){
 		var isearch, id_title;
-		if("1" == getMeta('noac')){
+		if("1" === getMeta('noac')){
 			return;
 		}
 		isearch = Y.one('#id_q');
@@ -3322,30 +3884,45 @@ YUI({
 					 });
 				}
 			});
+		/**
+		 * Click on selected item in this autocomplete must
+		 * NOT do the default thing but instead take 
+		 * to the url of the question. The purpose of this
+		 * form is not really to autocomplete the form but
+		 * to show questions with similar titles and if user click on one
+		 * of them then take user to url of that question.
+		 */
+		id_title.ac.on('select', function(e){
+			var qlink, result = e.result;
+		   
+		    if(result.raw && result.raw._id && result.raw.url){
+		    	e.preventDefault();
+			    qlink = '/q' + result.raw._id + '/' + result.raw.url;
+			    window.location.assign(qlink);
+		   }
+		   
+		});
 		}
 	};
 	
 	initTooltip();
+	makeEditor();
+	if(editor){
+		
+	}
 	revealComments();
 	revealHidden();
-	hiFollowedTags();
 	setReadLinks();
 	storeReadEtag();
 	
-	/*Y.one("div.home").on('click', function(){
-		showLoading(Y.one(".paginated"))
-	});*/
-	
-	
+	aComHand = Y.all('.com_hand');
+	if (aComHand && !aComHand.isEmpty()) {
+		aComHand.on('focus', getQuickRegForm);
+	}
 	
 	Y.on('submit', MysubmitForm, '.qa_form');
-	//Y.delegate("click", handleAjaxLinks, "#lastdiv", 'a.ajax');
-	/**
-	 * Listening the clicks on links inside #lastdiv
-	 * allows us to dynamically add modals and panels
-	 * to lastdiv and already subscriebed listeners will
-	 * just work
-	 */
+	
+
 	Y.delegate("click", handleAjaxLinks, "body", '.ajax');
 	Y.one('body').delegate("hover", handleOver, handleOut, '.following');
 	
@@ -3396,6 +3973,13 @@ YUI({
 	 initAutoComplete();
 	 initTagInput();
 	 addAdminControls();
-
+	 
+	 /**
+	  * Add code highlighter scripts
+	  * only if code highlight is enabled
+	  */
+	 if (typeof dp !== 'undefined') {
+	 	//dp.sh.ClipboardSwf = '/js/min/clipboard.swf';
+		dp.SyntaxHighlighter.HighlightAll('code');
+	 }
 });
-

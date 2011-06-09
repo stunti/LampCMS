@@ -49,45 +49,41 @@
  *
  */
 
-namespace Lampcms;
-
 /**
+ * This template is for a "Select Tumblr blog"
+ * small html form that will apper
+ * in a popup "Connect to Tumblr" window
+ * only if it's detected that User has more than one
+ * blog on Tumblr, in which case use must select
+ * which one of his blog will be used as "connected" blog
  * 
- * This class is responsible for creating
- * the "question_title" table in MySQL database
  * 
- * It is usually called the first time the insert
- * is about to be made into that table
+ * @author Dmitri Snytkine
  *
- */
-class TitleTagsTable
+ */ 
+class tplTumblrblogs extends \Lampcms\Template\Template
 {
-	const SQL = '
-  CREATE TABLE `question_title` (
-  `qid` int(9) NOT NULL,
-  `title` varchar(200) NOT NULL,
-  `q_body` text COMMENT \'body of the question\',
-  `url` varchar(500) NOT NULL,
-  `intro` char(200) NOT NULL,
-  `ts` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `uid` int(9) NOT NULL DEFAULT \'0\' COMMENT \'user id\',
-  `username` varchar(50) NOT NULL,
-  `userlink` varchar(60) NOT NULL COMMENT \'path to user profile, usually looks like this: /users/123/someuser\',
-  `avtr` text NOT NULL COMMENT \'path to user avatar at time of posting\',
-  `tags_c` varchar(100) NOT NULL,
-  `tags_html` text NOT NULL,
-  UNIQUE KEY `qid` (`qid`),
-  KEY `uid` (`uid`),
-  FULLTEXT KEY `title_body` (`title`,`q_body`),
-  FULLTEXT KEY `title` (`title`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT=\'Table used for full text indexing of question title\';
+	protected static $vars = array(
+	'token' => '', //1
+	'options' => '', //2
+	'label' => '', //3
+	'save' => '', //4
+	'a' => 'tumblrselect' //5
+	);
+	
+	
+	protected static $tpl = '
+		<form action="/index.php" name="tumblrblogs" method="POST" action="/index.php" accept-charset="utf-8">
+			<input type="hidden" name="a" value="%5$s">
+			<input type="hidden" name="blogselect" value="1">
+			<input type="hidden" name="token" value="%1$s">
+			<br>
+				<span>%3$s</span>
+				<br><br>
+				<select tabindex="1" name="blog">%2$s</select>
+				<br><br>
+				<input  tabindex="2" id="dostuff" name="submit" type="submit" value="%4$s" class="btn_comment"> 
+		</form>
 	';
-
-	public static function create(Registry $oRegistry){
-		d('Table "question_title" not found going to create it now');
-		$res = $oRegistry->Db->exec(self::SQL);
-		d('res: '.$res);
-		
-		return true;
-	}
+	
 }

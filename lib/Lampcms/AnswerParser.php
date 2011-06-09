@@ -52,6 +52,8 @@
 
 namespace Lampcms;
 
+use Lampcms\String\HTMLStringParser;
+
 /**
  * Class responsible for parsing submitted
  * answer object.
@@ -85,7 +87,12 @@ class Answerparser extends LampcmsObject
 	protected $oQuestion;
 
 
+	/**
+	 * Cache object
+	 * @var object of type \Lampcms\Cache
+	 */
 	protected $oCache;
+
 
 	/**
 	 * Object of newly created answer
@@ -96,6 +103,7 @@ class Answerparser extends LampcmsObject
 	 */
 	protected $oAnswer = null;
 
+	
 	public function __construct(Registry $oRegistry){
 		$this->oRegistry = $oRegistry;
 		/**
@@ -172,31 +180,28 @@ class Answerparser extends LampcmsObject
 
 		/**
 		 * Must pass array('drop-proprietary-attributes' => false)
-		 * otherwise tidy removes rel="code" // ->makeClickable() // was after getBody
+		 * otherwise tidy removes rel="code"
 		 */
-		$oBody = $this->oSubmittedAnswer->getBody()->tidy()->safeHtml()->asHtml();
+		$aEditorConfig = $this->oRegistry->Ini->getSection('EDITOR');
+		$tidyConfig = ($aEditorConfig['ENABLE_CODE_EDITOR']) ? array('drop-proprietary-attributes' => false) : null;
+		$oBody = $this->oSubmittedAnswer->getBody()->tidy($tidyConfig)->safeHtml()->asHtml();
 
-		$htmlBody = DomFeedItem::loadFeedItem($oBody)->getFeedItem();
+		$htmlBody = HTMLStringParser::factory($oBody)->parseCodeTags()->linkify()->importCDATA()->setNofollow()->valueOf();
 
-		d('after DomFeedItem: '.$htmlBody);
+		d('after HTMLStringParser: '.$htmlBody);
 
 		$username = $this->oSubmittedAnswer->getUserObject()->getDisplayName();
 		$uid = $this->oSubmittedAnswer->getUserObject()->getUid();
 		$qid = $this->oSubmittedAnswer->getQid();
 
-		$hash = hash('md5', strtolower($htmlBody.$qid));
+		$hash = hash('md5', \mb_strtolower($htmlBody.$qid));
 
 		/**
-		 * @todo can parse forMakrdown now but ideally
-		 * parseMarkdown() would be done inside Utf8string
-		 * as well as parseSmilies
-		 *
-		 * @todo Can't remember why we need to copy the title
+		 * 
+		 * We need to copy the title
 		 * here too because Answer by itself does not have own
-		 * title. This must have something to do with the way
-		 * I expected to render this - without the need to also
-		 * query the QUESTIONS collection but jsut can't remember
-		 * what it was for now...
+		 * title but we need a title when displaying links
+		 * to answer on profile pages
 		 *
 		 * @todo later can also parse for smilies here
 		 *
@@ -208,11 +213,12 @@ class Answerparser extends LampcmsObject
 		'i_qid' => $qid,
 		'i_uid' => $uid,
 		'i_quid' => $this->oQuestion->getOwnerId(),
-		'title' => $this->oQuestion->title,	
+		'title' => $this->oQuestion->getTitle(),	
 		'hash' => $hash,
 		'username' => $username,
 		'ulink' => '<a href="'.$this->oSubmittedAnswer->getUserObject()->getProfileUrl().'">'.$username.'</a>',
 		'avtr' => $this->oSubmittedAnswer->getUserObject()->getAvatarSrc(),
+		'i_words' => $oBody->asPlainText()->getWordsCount(),
 		'i_up' => 0,
 		'i_down' => 0,
 		'i_votes' => 0,
@@ -347,7 +353,7 @@ class Answerparser extends LampcmsObject
 	 * and add Answerer User to list
 	 * of Question contributors
 	 * (this is for the dot-folders feature)
-	 * 
+	 *
 	 * The increaseAnswerCount will also update
 	 * the last modified timestamp for question
 	 *
@@ -359,7 +365,8 @@ class Answerparser extends LampcmsObject
 
 		$this->oQuestion->updateAnswerCount()
 		->addContributor($oUser)
-		->setLastAnswerer($oUser);
+		->setLatestAnswer($oUser, $this->oAnswer)
+		->touch();
 
 		return $this;
 	}
@@ -372,8 +379,6 @@ class Answerparser extends LampcmsObject
 	 * @return object $this
 	 */
 	protected function followQuestion(){
-		d('cp');
-
 		$oFollowManager = new FollowManager($this->oRegistry);
 		$oFollowManager->followQuestion($this->oRegistry->Viewer, $this->oQuestion);
 
@@ -382,12 +387,24 @@ class Answerparser extends LampcmsObject
 
 
 	/**
-	 * @todo do this via shutdown function
+	 * Updates USER_TAGS collection
+	 * Takes into account the tags from the
+	 * Question for which the user just submitted
+	 * an answer.
+	 * This is run via shutdown function
+	 *
+	 * @return object $this
 	 */
 	protected function addUserTags($uid){
 
-		UserTags::factory($this->oRegistry)
-		->addTags($uid, $this->oQuestion);
+		$oTags = UserTags::factory($this->oRegistry);
+		$oQuestion = $this->oQuestion;
+
+		$func = function() use ($oTags, $uid, $oQuestion){
+			$oTags->addTags($uid, $oQuestion);
+		};
+		d('cp');
+		runLater($func);
 		d('cp');
 
 		return $this;
@@ -412,7 +429,6 @@ class Answerparser extends LampcmsObject
 
 			$this->oQuestion = new Question($this->oRegistry, $a);
 		}
-
 
 		return $this->oQuestion;
 	}

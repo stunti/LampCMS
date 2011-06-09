@@ -50,26 +50,41 @@
  */
 
  
-namespace Lampcms;
-
+ 
 /**
- * Constants or Actions
- * mapped to reputation score required
- * to perform this action
- * 
- * @author Dmitri Snytkine
+ * Template for displaying the
+ * Options (tabs) for sorting the User answers
+ * Added to Userinfo page above the user questions div
  *
+ * Used in Userinfo controller
  */
-class ReputationAcl
+class tplSortuans extends Lampcms\Template\Template
 {
-	
-	const RETAG = 500;
-	
-	const VOTE_UP = 15;
-	
-	const VOTE_DOWN = 125;
-	
-	const EDIT = 2000;
-	
-	const COMMENT = 25;
+	protected static $vars = array(
+	'oldest_c' => '', //1
+	'recent_c' => '', //2
+	'voted_c' => '', //3
+	'updated_c' => '', //4
+	'oldest_t' => 'Older answers first', // 5
+	'recent_t' => 'Recent answers first', // 6
+	'voted_t' => 'Most voted answers first', // 7
+	'updated_t' => 'Answers with recent activity first', // 8
+	'oldest' => 'Oldest', //9
+	'recent' => 'Recent', //10
+	'voted' => 'Most voted', //11
+	'updated' => 'Recently active', //12
+	'uid' => '', //13
+	'best_c' => '', //14
+	'best' => 'Best answer', //15
+	'best_t' => 'Selected as Best Answer' //16
+	);
+
+	protected static $tpl = '
+	<div id="qtypes2" class="qtypes cb fl reveal hidden">
+	<a href="/tab/a/%13$s/recent/page1.html" class="ajax sortans ttt2 qtype%2$s" title="%6$s">%10$s</a>
+	<a href="/tab/a/%13$s/oldest/page1.html" class="ajax sortans ttt2 qtype%1$s" title="%5$s">%9$s</a>
+	<a href="/tab/a/%13$s/voted/page1.html" class="ajax sortans ttt2 qtype%3$s" title="%7$s">%11$s</a>
+	<a href="/tab/a/%13$s/updated/page1.html" class="ajax sortans ttt2 qtype%4$s" title="%8$s">%12$s</a>
+	<a href="/tab/a/%13$s/best/page1.html" class="ajax sortans ttt2 qtype%14$s" title="%16$s">%15$s</a>
+	</div>';
 }

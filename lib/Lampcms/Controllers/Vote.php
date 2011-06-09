@@ -55,7 +55,7 @@ namespace Lampcms\Controllers;
 use \Lampcms\Responder;
 use \Lampcms\WebPage;
 use \Lampcms\Request;
-use \Lampcms\Points;
+
 
 /**
  * Controller for processing a vote
@@ -268,8 +268,12 @@ class Vote extends WebPage
 		 * Now need to calculate points
 		 *
 		 */
-		\Lampcms\User::factory($this->oRegistry)->by_id($uid)->setReputation($this->calculatePoints());
-
+		try{
+			\Lampcms\User::factory($this->oRegistry)->by_id($uid)->setReputation($this->calculatePoints());
+		} catch(\Exception $e){
+			e($e->getMessage().' in file: '.$e->getFile().' on line: '.$e->getLine());
+		}
+		
 		return $this;
 	}
 
@@ -286,11 +290,11 @@ class Vote extends WebPage
 	 */
 	protected function calculatePoints(){
 		if('down' === $this->voteType){
-			$points = Points::DOWNVOTE;
+			$points = \Lampcms\Points::DOWNVOTE;
 		} elseif('QUESTION' === $this->resType){
-			$points = Points::UPVOTE_Q;
+			$points = \Lampcms\Points::UPVOTE_Q;
 		} else {
-			$points = Points::UPVOTE_A;
+			$points = \Lampcms\Points::UPVOTE_A;
 		}
 
 		$points = ($this->inc * $points);
@@ -307,9 +311,9 @@ class Vote extends WebPage
 	 */
 	protected function increaseVoteCount(){
 		if('up' === $this->voteType){
-			$this->oResource->addUpVote($this->inc);
+			$this->oResource->addUpVote($this->inc)->touch(true);
 		} else {
-			$this->oResource->addDownVote($this->inc);
+			$this->oResource->addDownVote($this->inc)->touch(true);
 		}
 
 		return $this;
