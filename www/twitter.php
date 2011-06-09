@@ -57,7 +57,7 @@
  *
  * No actual page rendering will be taking place.
  */
-include '../!inc.php';
+include '../inc.php';
 
 
 try {

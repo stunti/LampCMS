@@ -44,7 +44,7 @@ define('THIS_PATH', realpath(dirname(__FILE__)));
  * 
  */
 
-include THIS_PATH.'/!inc.php';
+include THIS_PATH.'/inc.php';
 try{
 	$o = new \Lampcms\SiteMap();
 	$o->run();

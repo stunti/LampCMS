@@ -52,7 +52,7 @@
 
 define('INIT_TIMESTAMP', microtime());
 
-include '../!inc.php';
+include '../inc.php';
 require($lampcmsClasses.'Base.php');
 require($lampcmsClasses.'WebPage.php');
 require($lampcmsClasses.'Forms'.DIRECTORY_SEPARATOR.'Form.php');

@@ -73,7 +73,7 @@ class Ini extends LampcmsArray
 
 	public function __construct()
 	{
-		$iniFile = LAMPCMS_PATH.DIRECTORY_SEPARATOR.'!config.ini';
+		$iniFile = LAMPCMS_PATH.DIRECTORY_SEPARATOR.'config.ini';
 
 		$aIni = parse_ini_file($iniFile, true);
 
